@@ -9,13 +9,13 @@ public class TickLogic {
     public static int tickCounter = 0;
 
     public static void check(MinecraftServer server) {
-        for (ServerPlayer player : PlayerLookup.all(server)) {
-            tickCounter++;
-            if (tickCounter >= 20) {
+        tickCounter++;
+        if (tickCounter >= 40) {
+            for (ServerPlayer player : PlayerLookup.all(server)) {
                 CheckingLogic.checkPlayer(player);
                 CheckingLogic.checkPosition(player);
-                tickCounter = 0;
             }
+            tickCounter = 0;
         }
     }
 }

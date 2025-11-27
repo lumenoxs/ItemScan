@@ -13,7 +13,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.entity.ShulkerBoxBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-
+import net.tvc.backend.BackendInstance;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 
@@ -23,10 +23,12 @@ public class CheckingLogic {
             ItemStack iStack = container.getItem(i);
             if (!iStack.isEmpty()) {
                 if (checkItem(iStack)) {
-                    if (pos == null)
+                    if (pos == null) {
                         ReportingLogic.sendInventoryWebhook(player, iStack);
-                    else {
+                        BackendInstance.LOGGER.warn(player.getPlainTextName() + " had an illegal");
+                    } else {
                         ReportingLogic.sendStorageWebhook(player, iStack, pos);
+                        BackendInstance.LOGGER.warn(pos.getX() + " " + pos.getY() + " " + pos.getZ() + " had an illegal");
                     }
                     container.removeItem(i, iStack.getCount());
                     container.setChanged();
@@ -91,5 +93,6 @@ public class CheckingLogic {
 
     public static void checkPlayer(ServerPlayer player) {
         checkItems(player.getInventory(), player, null);
+        BackendInstance.LOGGER.info("players working - checking "+player.getPlainTextName());
     }
 }
