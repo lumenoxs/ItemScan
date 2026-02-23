@@ -24,11 +24,11 @@ public class CheckingLogic {
             if (!iStack.isEmpty()) {
                 if (checkItem(iStack)) {
                     if (pos == null) {
-                        ReportingLogic.sendInventoryWebhook(player, iStack);
-                        BackendInstance.LOGGER.warn(player.getPlainTextName() + " had an illegal");
+                        ReportingLogic.saveInventoryReport(player, iStack);
+                        BackendInstance.LOGGER.warn(player.getPlainTextName() + " had an illegal item");
                     } else {
-                        ReportingLogic.sendStorageWebhook(player, iStack, pos);
-                        BackendInstance.LOGGER.warn(pos.getX() + " " + pos.getY() + " " + pos.getZ() + " had an illegal");
+                        ReportingLogic.saveStorageReport(player, iStack, pos);
+                        BackendInstance.LOGGER.warn(pos.getX() + " " + pos.getY() + " " + pos.getZ() + " had an illegal item");
                     }
                     container.removeItem(i, iStack.getCount());
                     container.setChanged();
@@ -93,6 +93,5 @@ public class CheckingLogic {
 
     public static void checkPlayer(ServerPlayer player) {
         checkItems(player.getInventory(), player, null);
-        BackendInstance.LOGGER.info("players working - checking "+player.getPlainTextName());
     }
 }
