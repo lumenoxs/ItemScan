@@ -16,6 +16,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.tvc.backend.BackendInstance;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
+import net.minecraft.nbt.CompoundTag;
+import java.util.UUID;
 
 public class CheckingLogic {
     public static void checkItems(Container container, ServerPlayer player, BlockPos pos) {
@@ -32,6 +34,9 @@ public class CheckingLogic {
                     }
                     container.removeItem(i, iStack.getCount());
                     container.setChanged();
+                } else {
+                    // Track or add dupe-id to valid items
+                    trackOrTagItem(iStack, player, pos);
                 }
             }
         }
@@ -93,5 +98,87 @@ public class CheckingLogic {
 
     public static void checkPlayer(ServerPlayer player) {
         checkItems(player.getInventory(), player, null);
+    }
+
+    /* ===================== DUPE TRACKING ===================== */
+
+    private static boolean isDupeTrackableItem(ItemStack iStack) {
+        String itemId = iStack.getItem().toString();
+        return itemId.contains("diamond") || itemId.contains("netherite") || itemId.contains("shulker_box");
+    }
+
+    private static void trackOrTagItem(ItemStack iStack, ServerPlayer player, BlockPos pos) {
+        if (!isDupeTrackableItem(iStack)) return;
+
+        AntiDupeDB db = new AntiDupeDB();
+        UUID dupeId = getDupeId(iStack);
+
+        if (dupeId == null) {
+            // Register new item
+            dupeId = db.register(iStack);
+            addDupeIdTag(iStack, dupeId);
+        }
+
+        // Update location and NBT
+        String location = getLocationString(player, pos);
+        String nbtString = getNBTString(iStack);
+
+        db.updateLocation(dupeId, location);
+        db.updateNBT(dupeId, nbtString);
+    }
+
+    private static UUID getDupeId(ItemStack iStack) {
+        // Ensure we have a tag container even if it was previously empty.
+        CompoundTag tag = iStack.getOrCreateTag();
+        if (!tag.contains("tvc-backend:dupe-id")) {
+            return null;
+        }
+        try {
+            return tag.getUUID("tvc-backend:dupe-id");
+        } catch (Exception e) {
+            // if the stored value isn't a valid UUID, just treat it as absent
+            return null;
+        }
+    }
+
+    private static void addDupeIdTag(ItemStack iStack, UUID dupeId) {
+        CompoundTag tag = iStack.getOrCreateTag();
+        tag.putUUID("tvc-backend:dupe-id", dupeId);
+    }
+
+    private static String getLocationString(ServerPlayer player, BlockPos pos) {
+        if (pos == null) {
+            return "player:" + player.getName().getString() + " at X:" + 
+                    Math.round(player.getX()) + " Y:" + 
+                    Math.round(player.getY()) + " Z:" + 
+                    Math.round(player.getZ());
+        } else {
+            // Determine container type
+            ServerLevel world = player.level();
+            BlockState blockState = world.getBlockState(pos);
+            String containerType = "unknown";
+            
+            if (blockState.getBlock() == Blocks.CHEST) {
+                containerType = "chest";
+            } else if (blockState.getBlock() == Blocks.BARREL) {
+                containerType = "barrel";
+            } else if (blockState.getBlock() == Blocks.SHULKER_BOX) {
+                containerType = "shulker";
+            }
+
+            return containerType + " at X:" + pos.getX() + " Y:" + pos.getY() + " Z:" + pos.getZ();
+        }
+    }
+
+    private static String getNBTString(ItemStack iStack) {
+        try {
+            Object tagObj = iStack.getClass().getMethod("getTag").invoke(iStack);
+            if (tagObj instanceof CompoundTag tag) {
+                return tag.toString();
+            }
+        } catch (Exception e) {
+            // No tag
+        }
+        return "{}";
     }
 }

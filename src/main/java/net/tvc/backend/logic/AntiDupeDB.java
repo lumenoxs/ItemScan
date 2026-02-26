@@ -69,11 +69,48 @@ public class AntiDupeDB {
 
         history.add(event);
 
-        Map<String,Object> writable = new HashMap<>();
-        writable.put("type", db.get("type"));
+        Map<String,Object> writable = new HashMap<>(castMapToStringObjectMap(db));
         writable.put("history", history);
 
         write(dupeId, writable);
+    }
+
+    public void updateLocation(UUID dupeId, String location) {
+        Map<?,?> dbData = read(dupeId);
+        if (dbData == null) return;
+
+        Map<String,Object> db = castMapToStringObjectMap(dbData);
+        
+        String previousLocation = (String) db.get("currentLocation");
+        if (previousLocation != null && !previousLocation.equals(location)) {
+            addHistoryLog(dupeId, "transfer", previousLocation + " -> " + location);
+        }
+        
+        db.put("currentLocation", location);
+        write(dupeId, db);
+    }
+
+    public void updateNBT(UUID dupeId, String nbt) {
+        Map<?,?> dbData = read(dupeId);
+        if (dbData == null) return;
+
+        Map<String,Object> db = castMapToStringObjectMap(dbData);
+        
+        String previousNBT = (String) db.get("currentNBT");
+        if (previousNBT != null && !previousNBT.equals(nbt)) {
+            addHistoryLog(dupeId, "modify", previousNBT + ";" + nbt);
+        }
+        
+        db.put("currentNBT", nbt);
+        write(dupeId, db);
+    }
+
+    private Map<String,Object> castMapToStringObjectMap(Map<?,?> map) {
+        Map<String,Object> result = new HashMap<>();
+        for (Map.Entry<?,?> entry : map.entrySet()) {
+            result.put((String) entry.getKey(), entry.getValue());
+        }
+        return result;
     }
 
     public UUID register(ItemStack item) {
@@ -88,6 +125,8 @@ public class AntiDupeDB {
 
         Map<String,Object> db = new HashMap<>();
         db.put("type", type);
+        db.put("currentLocation", "unknown");
+        db.put("currentNBT", "{}");
 
         List<Map<String,Object>> history = new ArrayList<>();
         Map<String,Object> creation = new HashMap<>();
