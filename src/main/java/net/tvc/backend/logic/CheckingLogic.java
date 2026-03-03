@@ -1,8 +1,9 @@
 package net.tvc.backend.logic;
 
+import net.tvc.backend.BackendInstance;
+import net.tvc.backend.component.ModComponents;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-
 import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
@@ -13,72 +14,170 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.entity.ShulkerBoxBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.tvc.backend.BackendInstance;
+
+import net.minecraft.core.component.DataComponents;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
-import net.minecraft.nbt.CompoundTag;
-import java.util.UUID;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.TextColor;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.HoverEvent;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import java.net.URI;
 
 public class CheckingLogic {
+    private static final String[] BLACKLISTED_ITEMS = {
+        "minecraft:command_block",
+        "minecraft:chain_command_block",
+        "minecraft:repeating_command_block",
+        "minecraft:command_block_minecart",
+        "minecraft:structure_block",
+        "minecraft:jigsaw",
+        "minecraft:structure_void",
+        "minecraft:barrier",
+        "minecraft:light",
+        "minecraft:debug_stick",
+        "minecraft:knowledge_book",
+        "minecraft:spawner",
+        "minecraft:end_portal"
+    };
+
+    @SuppressWarnings("null")
     public static void checkItems(Container container, ServerPlayer player, BlockPos pos) {
+        // loop through items in container
         for (int i = 0; i < container.getContainerSize(); i++) {
             ItemStack iStack = container.getItem(i);
             if (!iStack.isEmpty()) {
+                // check item
                 if (checkItem(iStack)) {
+                    Integer code;
+                    TextColor DARK_RED = TextColor.fromRgb(0xAA0000);
+                    TextColor RED = TextColor.fromRgb(0xFF5555);
+                    TextColor GOLD = TextColor.fromRgb(0xFFAA00);
                     if (pos == null) {
-                        ReportingLogic.saveInventoryReport(player, iStack);
+                        // inventory report
+                        code = ReportingLogic.saveInventoryReport(player, iStack);
+                        MutableComponent line1 = Component.literal("An automated scan has successfully found and removed illegal item(s) in your inventory");
+                        MutableComponent line2 = Component.literal("\nFor more info, go here: ");
+                        MutableComponent link = Component.literal("https://truevanilla.net/wiki/A.I.I.D.A./Inventory");
+                        MutableComponent line3 = Component.literal("\nCode: ");
+                        MutableComponent codeText = Component.literal(code.toString());
+
+                        line1.setStyle(line1.getStyle().withColor(DARK_RED));
+                        line2.setStyle(line2.getStyle().withColor(RED));
+                        link.setStyle(link.getStyle().withColor(RED).withUnderlined(true).withClickEvent(new ClickEvent.OpenUrl(URI.create("https://truevanilla.net/wiki/A.I.I.D.A./Inventory"))));
+                        line3.setStyle(line3.getStyle().withColor(GOLD));
+                        codeText.setStyle(codeText.getStyle().withColor(GOLD).withClickEvent(new ClickEvent.CopyToClipboard(code.toString())).withHoverEvent(new HoverEvent.ShowText(Component.literal("Click to copy!"))));
+
+                        MutableComponent message = Component.literal("").append(line1).append(line2).append(link).append(line3).append(codeText);
+                        player.sendSystemMessage(message);
+                        iStack.setCount(0);
                         BackendInstance.LOGGER.warn(player.getPlainTextName() + " had an illegal item");
                     } else {
-                        ReportingLogic.saveStorageReport(player, iStack, pos);
+                        // chest report
+                        code = ReportingLogic.saveStorageReport(player, iStack, pos);
+                        MutableComponent line1 = Component.literal("An automated scan has successfully found and removed illegal item(s) in a storage block near you");
+                        MutableComponent line2 = Component.literal("\nFor more info, go here: ");
+                        MutableComponent link = Component.literal("https://truevanilla.net/wiki/A.I.I.D.A./Storage");
+                        MutableComponent line3 = Component.literal("\nCode: ");
+                        MutableComponent codeText = Component.literal(code.toString());
+
+                        line1.setStyle(line1.getStyle().withColor(DARK_RED));
+                        line2.setStyle(line2.getStyle().withColor(RED));
+                        link.setStyle(link.getStyle().withColor(RED).withUnderlined(true).withClickEvent(new ClickEvent.OpenUrl(URI.create("https://truevanilla.net/wiki/A.I.I.D.A./Storage"))));
+                        line3.setStyle(line3.getStyle().withColor(GOLD));
+                        codeText.setStyle(codeText.getStyle().withColor(GOLD).withClickEvent(new ClickEvent.CopyToClipboard(code.toString())).withHoverEvent(new HoverEvent.ShowText(Component.literal("Click to copy!"))));
+
+                        MutableComponent message = Component.literal("").append(line1).append(line2).append(link).append(line3).append(codeText);
+                        player.sendSystemMessage(message);
                         BackendInstance.LOGGER.warn(pos.getX() + " " + pos.getY() + " " + pos.getZ() + " had an illegal item");
                     }
                     container.removeItem(i, iStack.getCount());
                     container.setChanged();
                 } else {
-                    // Track or add dupe-id to valid items
-                    trackOrTagItem(iStack, player, pos);
+                    // anti dupe id tracking
+                    AntiDupeCheckingLogic.track(iStack, player, pos);
                 }
             }
         }
     }
 
+    @SuppressWarnings("null")
     public static boolean checkItem(ItemStack iStack) {
-        boolean illegal = false;
-
-        if (iStack.getCount() > iStack.getMaxStackSize()) {
-            illegal = true;
-            return illegal;
+        if (iStack.getOrDefault(ModComponents.IMMUNE, false)) {
+            return false;
         }
-
+        
+        int rCost = iStack.get(DataComponents.REPAIR_COST);
+        String itemId = iStack.getItem().toString();
         ItemEnchantments iEnchantments = iStack.getEnchantments();
 
-        for (Holder<Enchantment> enchantment : iEnchantments.keySet()) {
-            int level = iEnchantments.getLevel(enchantment);
-            if (level > enchantment.value().getMaxLevel() || level < enchantment.value().getMinLevel() || enchantment.value().isSupportedItem(iStack) == false) {
-                illegal = true;
-                return illegal;
+        // repair cost
+        if (rCost == 0) {
+            if (itemId.equals("minecraft:elytra") && iEnchantments.size() != 0) {
+                return true;
             }
         }
 
-        return illegal;
+        // incompatible enchantments
+        List<Holder<Enchantment>> enchantList = new ArrayList<>(iEnchantments.keySet());
+
+        for (int i = 0; i < enchantList.size(); i++) {
+            for (int j = i + 1; j < enchantList.size(); j++) {
+                if (!Enchantment.areCompatible(enchantList.get(i), enchantList.get(j))) {
+                    return true;
+                }
+            }
+        }
+
+        // stacks
+        if (iStack.getCount() > iStack.getMaxStackSize()) {
+            return true;
+        }
+        
+        // item IDs
+        if (Arrays.asList(BLACKLISTED_ITEMS).contains(itemId) || itemId.contains("spawn_egg")) {
+            return true;
+        }
+
+        // enchantments
+        for (Holder<Enchantment> enchantment : iEnchantments.keySet()) {
+            int level = iEnchantments.getLevel(enchantment);
+            if (level > enchantment.value().getMaxLevel() || level < enchantment.value().getMinLevel() || enchantment.value().isSupportedItem(iStack) == false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static void checkPosition(ServerPlayer player) {
+        // get location
         BlockPos pPos = player.getOnPos();
         ServerLevel world = player.level();
 
+        // check 4x3x4 area around the player for containers, and scan them
         for (int x = -4; x <= 4; x++) {
             for (int y = -3; y <= 3; y++) {
                 for (int z = -4; z <= 4; z++) {
+                    // get block pos
                     BlockPos pos = new BlockPos(x+pPos.getX(), y+pPos.getY(), z+pPos.getZ());
                     BlockState blockState = world.getBlockState(pos);
+                    // if container
                     if (blockState.getBlock() == Blocks.CHEST ||
                         blockState.getBlock() == Blocks.BARREL ||
                         blockState.getBlock() == Blocks.SHULKER_BOX) {
                         
                         BlockEntity blockEntity = world.getBlockEntity(pos);
                         Container bEntity;
-
+                            
+                        // casting
                         if (blockEntity instanceof BarrelBlockEntity barrel) {
                             bEntity = barrel;
                         } else if (blockEntity instanceof ChestBlockEntity chest) {
@@ -89,6 +188,7 @@ public class CheckingLogic {
                             continue;
                         }
                         
+                        // check items
                         checkItems(bEntity, player, pos);
                     }
                 }
@@ -97,88 +197,7 @@ public class CheckingLogic {
     }
 
     public static void checkPlayer(ServerPlayer player) {
+        // check inventory
         checkItems(player.getInventory(), player, null);
-    }
-
-    /* ===================== DUPE TRACKING ===================== */
-
-    private static boolean isDupeTrackableItem(ItemStack iStack) {
-        String itemId = iStack.getItem().toString();
-        return itemId.contains("diamond") || itemId.contains("netherite") || itemId.contains("shulker_box");
-    }
-
-    private static void trackOrTagItem(ItemStack iStack, ServerPlayer player, BlockPos pos) {
-        if (!isDupeTrackableItem(iStack)) return;
-
-        AntiDupeDB db = new AntiDupeDB();
-        UUID dupeId = getDupeId(iStack);
-
-        if (dupeId == null) {
-            // Register new item
-            dupeId = db.register(iStack);
-            addDupeIdTag(iStack, dupeId);
-        }
-
-        // Update location and NBT
-        String location = getLocationString(player, pos);
-        String nbtString = getNBTString(iStack);
-
-        db.updateLocation(dupeId, location);
-        db.updateNBT(dupeId, nbtString);
-    }
-
-    private static UUID getDupeId(ItemStack iStack) {
-        // Ensure we have a tag container even if it was previously empty.
-        CompoundTag tag = iStack.getOrCreateTag();
-        if (!tag.contains("tvc-backend:dupe-id")) {
-            return null;
-        }
-        try {
-            return tag.getUUID("tvc-backend:dupe-id");
-        } catch (Exception e) {
-            // if the stored value isn't a valid UUID, just treat it as absent
-            return null;
-        }
-    }
-
-    private static void addDupeIdTag(ItemStack iStack, UUID dupeId) {
-        CompoundTag tag = iStack.getOrCreateTag();
-        tag.putUUID("tvc-backend:dupe-id", dupeId);
-    }
-
-    private static String getLocationString(ServerPlayer player, BlockPos pos) {
-        if (pos == null) {
-            return "player:" + player.getName().getString() + " at X:" + 
-                    Math.round(player.getX()) + " Y:" + 
-                    Math.round(player.getY()) + " Z:" + 
-                    Math.round(player.getZ());
-        } else {
-            // Determine container type
-            ServerLevel world = player.level();
-            BlockState blockState = world.getBlockState(pos);
-            String containerType = "unknown";
-            
-            if (blockState.getBlock() == Blocks.CHEST) {
-                containerType = "chest";
-            } else if (blockState.getBlock() == Blocks.BARREL) {
-                containerType = "barrel";
-            } else if (blockState.getBlock() == Blocks.SHULKER_BOX) {
-                containerType = "shulker";
-            }
-
-            return containerType + " at X:" + pos.getX() + " Y:" + pos.getY() + " Z:" + pos.getZ();
-        }
-    }
-
-    private static String getNBTString(ItemStack iStack) {
-        try {
-            Object tagObj = iStack.getClass().getMethod("getTag").invoke(iStack);
-            if (tagObj instanceof CompoundTag tag) {
-                return tag.toString();
-            }
-        } catch (Exception e) {
-            // No tag
-        }
-        return "{}";
     }
 }

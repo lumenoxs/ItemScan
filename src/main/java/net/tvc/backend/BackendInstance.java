@@ -5,9 +5,6 @@ import net.tvc.backend.component.ModComponents;
 
 import net.fabricmc.api.ModInitializer;
 
-import net.minecraft.core.component.DataComponentType;
-import net.minecraft.core.registries.BuiltInRegistries;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -1,23 +1,32 @@
 package net.tvc.backend.component;
 
-import net.minecraft.core.component.DataComponentType;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.Registry;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.Identifier;
-
-import net.tvc.backend.BackendInstance;
-
-import com.mojang.serialization.Codec;
-
 import java.util.UUID;
 
+import net.minecraft.core.Registry;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.resources.Identifier;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.UUIDUtil;
+import com.mojang.serialization.Codec;
+
 public class ModComponents {
-    static final DataComponentType<UUID> DUPE_ID = Registry.register(
+    @SuppressWarnings("null")
+    public static final DataComponentType<UUID> DUPE_ID = Registry.register(
         BuiltInRegistries.DATA_COMPONENT_TYPE,
-        Identifier.fromNamespaceAndPath(BackendInstance.MOD_ID, "dupe_id"),
-        DataComponentType.<UUID>builder().persistent(null).build()
+        Identifier.fromNamespaceAndPath("tvc-backend", "dupe_id"),
+        DataComponentType.<UUID>builder()
+            .persistent(UUIDUtil.CODEC)
+            .build()
     );
-    
+
+    @SuppressWarnings("null")
+    public static final DataComponentType<Boolean> IMMUNE = Registry.register(
+        BuiltInRegistries.DATA_COMPONENT_TYPE,
+        Identifier.fromNamespaceAndPath("tvc-backend", "immune"),
+        DataComponentType.<Boolean>builder()
+            .persistent(Codec.BOOL)
+            .build()
+    );
+
     public static void initialize() {}
 }

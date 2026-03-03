@@ -11,6 +11,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 
 import net.tvc.backend.utils.DiscordWebhook;
+import net.tvc.backend.utils.EnvLoader;
 
 import java.awt.Color;
 import java.io.IOException;
@@ -23,10 +24,11 @@ import java.time.Instant;
 public class ReportingLogic {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path REPORT_FILE = Paths.get("illegal_item_reports.json");
-    private static final String WEBHOOK_URL = "https://discord.com/api/webhooks/1412390362390990868/VSYilZaEpO_wyFfw2FW8sWJYZlA5l0e30kWpHM2w6RWaBbJu8c73QQEOBA3H6HdIEsBe"; // Replace with actual webhook URL
+    private static final String WEBHOOK_URL = EnvLoader.get("ILLEGAL_ITEMS_DISCORD_WEBHOOK_URL");
 
-    public static void saveInventoryReport(ServerPlayer player, ItemStack stack) {
-        JsonObject report = buildBaseReport(player, stack);
+    public static Integer saveInventoryReport(ServerPlayer player, ItemStack stack) {
+        double code = Math.floor(Math.random()*899999)+100000;
+        JsonObject report = buildBaseReport(player, stack, code);
         report.addProperty("type", "inventory");
 
         JsonObject position = new JsonObject();
@@ -37,10 +39,12 @@ public class ReportingLogic {
         report.add("playerPosition", position);
 
         saveReport(report);
+        return (int) code;
     }
 
-    public static void saveStorageReport(ServerPlayer player, ItemStack stack, BlockPos pos) {
-        JsonObject report = buildBaseReport(player, stack);
+    public static Integer saveStorageReport(ServerPlayer player, ItemStack stack, BlockPos pos) {
+        double code = Math.floor(Math.random()*999999)+100000;
+        JsonObject report = buildBaseReport(player, stack, code);
         report.addProperty("type", "storage");
 
         JsonObject position = new JsonObject();
@@ -51,17 +55,18 @@ public class ReportingLogic {
         report.add("storagePosition", position);
 
         saveReport(report);
+        return (int) code;
     }
 
     /* ===================== INTERNAL ===================== */
 
-    private static JsonObject buildBaseReport(ServerPlayer player, ItemStack stack) {
+    private static JsonObject buildBaseReport(ServerPlayer player, ItemStack stack, double code) {
         JsonObject json = new JsonObject();
 
         json.addProperty("timestamp", Instant.now().toString());
         json.addProperty("playerName", player.getName().getString());
         json.addProperty("playerUUID", player.getUUID().toString());
-
+        json.addProperty("code", code);
         JsonObject item = new JsonObject();
         item.addProperty(
                 "id",
@@ -123,6 +128,7 @@ public class ReportingLogic {
             embed.addField("Item ID", item.get("id").getAsString(), false);
             embed.addField("Display Name", item.get("displayName").getAsString(), true);
             embed.addField("Count", String.valueOf(item.get("count").getAsInt()), true);
+            embed.addField("Code", String.valueOf(report.get("code").getAsInt()), false);
 
             if (report.has("playerPosition")) {
                 JsonObject pos = report.getAsJsonObject("playerPosition");
