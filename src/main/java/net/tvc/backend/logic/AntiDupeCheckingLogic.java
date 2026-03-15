@@ -1,43 +1,50 @@
 package net.tvc.backend.logic;
 
-import net.tvc.backend.component.ModComponents;
-
 import java.util.UUID;
 
 import net.minecraft.core.BlockPos;
+
+import net.minecraft.nbt.CompoundTag;
+
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.core.component.DataComponents;
 
 public class AntiDupeCheckingLogic {
     @SuppressWarnings("null")
     public static void setDupeId(ItemStack iStack, UUID dupeId) {
         // set dupe id
-        iStack.set(ModComponents.DUPE_ID, dupeId);
+        CompoundTag nbt = iStack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+        nbt.putString("identifier", dupeId.toString());
+        CustomData.set(DataComponents.CUSTOM_DATA, iStack, nbt);
     }
 
     @SuppressWarnings("null")
     public static UUID getDupeId(ItemStack iStack) {
         // get the dupe id
-        UUID id = iStack.get(ModComponents.DUPE_ID);
+        CompoundTag nbt = iStack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+        UUID id = nbt.contains("identifier") ? UUID.fromString(nbt.getString("identifier").get()) : null;
         if (id == null) {
             createDupeId(iStack);
-            return iStack.get(ModComponents.DUPE_ID);
+            nbt = iStack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+            return nbt.contains("identifier") ? UUID.fromString(nbt.getString("identifier").get()) : null;
         }
         return id;
     }
 
-    @SuppressWarnings("null")
     public static void createDupeId(ItemStack iStack) {
         // add the dupe id to the nbt
-        iStack.set(ModComponents.DUPE_ID, AntiDupeDB.register(iStack));
+        setDupeId(iStack, AntiDupeDB.register(iStack));
     }
 
     private static boolean isTrackable(ItemStack iStack) {
         String itemId = iStack.getItem().toString();
-        return itemId.contains("diamond") || itemId.contains("netherite") || itemId.contains("shulker_box");
+        return (itemId.contains("diamond") || itemId.contains("netherite") || itemId.contains("shulker_box")) && !itemId.equals("diamond") && !itemId.contains("block") && !itemId.contains("ore") && !itemId.contains("ingot") && !itemId.contains("scrap") && !itemId.contains("upgrade");
     }
 
     public static void track(ItemStack iStack, ServerPlayer player, BlockPos pos) {

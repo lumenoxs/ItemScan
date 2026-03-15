@@ -1,7 +1,6 @@
 package net.tvc.backend;
 
 import net.tvc.backend.managers.CallbackManager;
-import net.tvc.backend.component.ModComponents;
 
 import net.fabricmc.api.ModInitializer;
 
@@ -16,7 +15,6 @@ public class BackendInstance implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		ModComponents.initialize();
 		CallbackManager.registerCallbacks();
 		LOGGER.info("TVC-Backend initialized!");
 	}
