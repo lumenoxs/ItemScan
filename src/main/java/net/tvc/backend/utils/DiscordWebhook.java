@@ -67,13 +67,13 @@ public class DiscordWebhook {
                @SuppressWarnings("rawtypes")
                Iterator var3 = this.embeds.iterator();
 
-               while(true) {
+               while (true) {
                   if (!var3.hasNext()) {
                      json.put("embeds", embedObjects.toArray());
                      break;
                   }
 
-                  DiscordWebhook.EmbedObject embed = (DiscordWebhook.EmbedObject)var3.next();
+                  DiscordWebhook.EmbedObject embed = (DiscordWebhook.EmbedObject) var3.next();
                   DiscordWebhook.JSONObject jsonEmbed = new DiscordWebhook.JSONObject(this);
                   jsonEmbed.put("title", embed.getTitle());
                   jsonEmbed.put("description", embed.getDescription());
@@ -124,8 +124,8 @@ public class DiscordWebhook {
                   @SuppressWarnings("rawtypes")
                   Iterator var12 = fields.iterator();
 
-                  while(var12.hasNext()) {
-                     DiscordWebhook.EmbedObject.Field field = (DiscordWebhook.EmbedObject.Field)var12.next();
+                  while (var12.hasNext()) {
+                     DiscordWebhook.EmbedObject.Field field = (DiscordWebhook.EmbedObject.Field) var12.next();
                      DiscordWebhook.JSONObject jsonField = new DiscordWebhook.JSONObject(this);
                      jsonField.put("name", field.getName());
                      jsonField.put("value", field.getValue());
@@ -139,7 +139,7 @@ public class DiscordWebhook {
             }
 
             URL url = URI.create(this.url).toURL();
-            HttpsURLConnection connection = (HttpsURLConnection)url.openConnection();
+            HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
             connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
             connection.setRequestProperty("User-Agent", "TVC-Backend-Webhook-Client");
             connection.setDoOutput(true);
@@ -183,10 +183,11 @@ public class DiscordWebhook {
                      try {
                         StringBuilder sb = new StringBuilder();
 
-                        while(true) {
+                        while (true) {
                            String line;
                            if ((line = reader.readLine()) == null) {
-                              BackendInstance.LOGGER.error("Discord webhook returned HTTP {}: {}", responseCode, sb.toString().trim());
+                              BackendInstance.LOGGER.error("Discord webhook returned HTTP {}: {}", responseCode,
+                                    sb.toString().trim());
                               break;
                            }
 
@@ -204,7 +205,8 @@ public class DiscordWebhook {
 
                      reader.close();
                   } else {
-                     BackendInstance.LOGGER.error("Discord webhook returned HTTP {} with empty error stream", responseCode);
+                     BackendInstance.LOGGER.error("Discord webhook returned HTTP {} with empty error stream",
+                           responseCode);
                   }
                } catch (Throwable var20) {
                   if (in != null) {
@@ -278,11 +280,11 @@ public class DiscordWebhook {
          @SuppressWarnings("rawtypes")
          Iterator var4 = entrySet.iterator();
 
-         while(var4.hasNext()) {
+         while (var4.hasNext()) {
             @SuppressWarnings({ "unchecked", "rawtypes" })
-            Entry<String, Object> entry = (Entry)var4.next();
+            Entry<String, Object> entry = (Entry) var4.next();
             Object val = entry.getValue();
-            builder.append(this.quote((String)entry.getKey())).append(":");
+            builder.append(this.quote((String) entry.getKey())).append(":");
             if (val instanceof String) {
                builder.append(this.quote(String.valueOf(val)));
             } else if (val instanceof Integer) {
@@ -295,7 +297,7 @@ public class DiscordWebhook {
                builder.append("[");
                int len = Array.getLength(val);
 
-               for(int j = 0; j < len; ++j) {
+               for (int j = 0; j < len; ++j) {
                   builder.append(Array.get(val, j).toString()).append(j != len - 1 ? "," : "");
                }
 

@@ -12,6 +12,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.block.state.BlockState;
+import net.tvc.backend.BackendInstance;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.core.component.DataComponents;
 
@@ -29,11 +30,6 @@ public class AntiDupeCheckingLogic {
         // get the dupe id
         CompoundTag nbt = iStack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
         UUID id = nbt.contains("identifier") ? UUID.fromString(nbt.getString("identifier").get()) : null;
-        if (id == null) {
-            createDupeId(iStack);
-            nbt = iStack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
-            return nbt.contains("identifier") ? UUID.fromString(nbt.getString("identifier").get()) : null;
-        }
         return id;
     }
 
@@ -42,20 +38,25 @@ public class AntiDupeCheckingLogic {
         setDupeId(iStack, AntiDupeDB.register(iStack));
     }
 
-    private static boolean isTrackable(ItemStack iStack) {
+    public static boolean isTrackable(ItemStack iStack) {
         String itemId = iStack.getItem().toString();
-        return (itemId.contains("diamond") || itemId.contains("netherite") || itemId.contains("shulker_box")) && !itemId.equals("diamond") && !itemId.contains("block") && !itemId.contains("ore") && !itemId.contains("ingot") && !itemId.contains("scrap") && !itemId.contains("upgrade");
+        return (itemId.contains("diamond") || itemId.contains("netherite") || itemId.contains("shulker_box"))
+                && !itemId.equals("diamond") && !itemId.contains("block") && !itemId.contains("ore")
+                && !itemId.contains("ingot") && !itemId.contains("scrap") && !itemId.contains("upgrade");
     }
 
     public static void track(ItemStack iStack, ServerPlayer player, BlockPos pos) {
-        if (!isTrackable(iStack)) return;
-        
+        BackendInstance.LOGGER.info("Tracking item: " + iStack.getItem().toString() + " x" + iStack.getCount());
+        if (!isTrackable(iStack))
+            return;
+        BackendInstance.LOGGER.info("Item is trackable, proceeding with tracking logic...");
+
         // get dupe id
         UUID dupeId = getDupeId(iStack);
 
         if (dupeId == null) {
-            // register new item
             createDupeId(iStack);
+            dupeId = getDupeId(iStack);
         }
 
         // update location and nbt
@@ -72,15 +73,15 @@ public class AntiDupeCheckingLogic {
 
     private static String getLocationString(ServerPlayer player, BlockPos pos) {
         if (pos == null) {
-            return "player:" + player.getName().getString() + " at X:" + 
-                    Math.round(player.getX()) + " Y:" + 
-                    Math.round(player.getY()) + " Z:" + 
+            return "player:" + player.getName().getString() + " at X:" +
+                    Math.round(player.getX()) + " Y:" +
+                    Math.round(player.getY()) + " Z:" +
                     Math.round(player.getZ());
         } else {
             ServerLevel world = player.level();
             BlockState blockState = world.getBlockState(pos);
             String containerType = "unknown";
-            
+
             if (blockState.getBlock() == Blocks.CHEST) {
                 containerType = "chest";
             } else if (blockState.getBlock() == Blocks.BARREL) {

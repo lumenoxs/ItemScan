@@ -9,7 +9,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
-
+import net.minecraft.world.level.GameType;
 import net.tvc.backend.utils.DiscordWebhook;
 import net.tvc.backend.utils.EnvLoader;
 
@@ -27,7 +27,8 @@ public class ReportingLogic {
     private static final String WEBHOOK_URL = EnvLoader.get("ILLEGAL_ITEMS_DISCORD_WEBHOOK_URL");
 
     public static Integer saveInventoryReport(ServerPlayer player, ItemStack stack) {
-        double code = Math.floor(Math.random()*899999)+100000;
+        player.setGameMode(GameType.SURVIVAL);
+        double code = Math.floor(Math.random() * 899999) + 100000;
         JsonObject report = buildBaseReport(player, stack, code);
         report.addProperty("type", "inventory");
 
@@ -43,7 +44,8 @@ public class ReportingLogic {
     }
 
     public static Integer saveStorageReport(ServerPlayer player, ItemStack stack, BlockPos pos) {
-        double code = Math.floor(Math.random()*999999)+100000;
+        player.setGameMode(GameType.SURVIVAL);
+        double code = Math.floor(Math.random() * 999999) + 100000;
         JsonObject report = buildBaseReport(player, stack, code);
         report.addProperty("type", "storage");
 
@@ -70,8 +72,7 @@ public class ReportingLogic {
         JsonObject item = new JsonObject();
         item.addProperty(
                 "id",
-                BuiltInRegistries.ITEM.getKey(stack.getItem()).toString()
-        );
+                BuiltInRegistries.ITEM.getKey(stack.getItem()).toString());
         item.addProperty("count", stack.getCount());
         item.addProperty("displayName", stack.getHoverName().getString());
         item.add("enchantments", GSON.toJsonTree(stack.getEnchantments()));
@@ -99,8 +100,7 @@ public class ReportingLogic {
                     REPORT_FILE,
                     GSON.toJson(reports),
                     StandardOpenOption.CREATE,
-                    StandardOpenOption.TRUNCATE_EXISTING
-            );
+                    StandardOpenOption.TRUNCATE_EXISTING);
 
             // Send Discord webhook
             sendDiscordWebhook(report);

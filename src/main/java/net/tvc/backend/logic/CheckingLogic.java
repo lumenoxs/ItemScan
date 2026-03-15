@@ -40,19 +40,20 @@ import java.net.URI;
 
 public class CheckingLogic {
     private static final String[] BLACKLISTED_ITEMS = {
-        "minecraft:command_block",
-        "minecraft:chain_command_block",
-        "minecraft:repeating_command_block",
-        "minecraft:command_block_minecart",
-        "minecraft:structure_block",
-        "minecraft:jigsaw",
-        "minecraft:structure_void",
-        "minecraft:barrier",
-        "minecraft:light",
-        "minecraft:debug_stick",
-        "minecraft:knowledge_book",
-        "minecraft:spawner",
-        "minecraft:end_portal"
+            "minecraft:command_block",
+            "minecraft:chain_command_block",
+            "minecraft:repeating_command_block",
+            "minecraft:command_block_minecart",
+            "minecraft:structure_block",
+            "minecraft:jigsaw",
+            "minecraft:structure_void",
+            "minecraft:barrier",
+            "minecraft:light",
+            "minecraft:debug_stick",
+            "minecraft:knowledge_book",
+            "minecraft:spawner",
+            "minecraft:end_portal",
+            "minecraft:bedrock"
     };
 
     @SuppressWarnings("null")
@@ -71,7 +72,8 @@ public class CheckingLogic {
                     if (pos == null) {
                         // inventory report
                         code = ReportingLogic.saveInventoryReport(player, iStack);
-                        MutableComponent line1 = Component.literal("An automated scan has successfully found and removed illegal item(s) in your inventory");
+                        MutableComponent line1 = Component.literal(
+                                "An automated scan has successfully found and removed illegal item(s) in your inventory");
                         MutableComponent line2 = Component.literal("\nFor more info, go here: ");
                         MutableComponent link = Component.literal("https://truevanilla.net/wiki/A.I.I.D.A./Inventory");
                         MutableComponent line3 = Component.literal("\nCode: ");
@@ -79,18 +81,24 @@ public class CheckingLogic {
 
                         line1.setStyle(line1.getStyle().withColor(DARK_RED));
                         line2.setStyle(line2.getStyle().withColor(RED));
-                        link.setStyle(link.getStyle().withColor(RED).withUnderlined(true).withClickEvent(new ClickEvent.OpenUrl(URI.create("https://truevanilla.net/wiki/A.I.I.D.A./Inventory"))));
+                        link.setStyle(link.getStyle().withColor(RED).withUnderlined(true)
+                                .withClickEvent(new ClickEvent.OpenUrl(
+                                        URI.create("https://truevanilla.net/wiki/A.I.I.D.A./Inventory"))));
                         line3.setStyle(line3.getStyle().withColor(GOLD));
-                        codeText.setStyle(codeText.getStyle().withColor(GOLD).withClickEvent(new ClickEvent.CopyToClipboard(code.toString())).withHoverEvent(new HoverEvent.ShowText(Component.literal("Click to copy!"))));
+                        codeText.setStyle(codeText.getStyle().withColor(GOLD)
+                                .withClickEvent(new ClickEvent.CopyToClipboard(code.toString()))
+                                .withHoverEvent(new HoverEvent.ShowText(Component.literal("Click to copy!"))));
 
-                        MutableComponent message = Component.literal("").append(line1).append(line2).append(link).append(line3).append(codeText);
+                        MutableComponent message = Component.literal("").append(line1).append(line2).append(link)
+                                .append(line3).append(codeText);
                         player.sendSystemMessage(message);
                         iStack.setCount(0);
                         BackendInstance.LOGGER.warn(player.getPlainTextName() + " had an illegal item");
                     } else {
                         // chest report
                         code = ReportingLogic.saveStorageReport(player, iStack, pos);
-                        MutableComponent line1 = Component.literal("An automated scan has successfully found and removed illegal item(s) in a storage block near you");
+                        MutableComponent line1 = Component.literal(
+                                "An automated scan has successfully found and removed illegal item(s) in a storage block near you");
                         MutableComponent line2 = Component.literal("\nFor more info, go here: ");
                         MutableComponent link = Component.literal("https://truevanilla.net/wiki/A.I.I.D.A./Storage");
                         MutableComponent line3 = Component.literal("\nCode: ");
@@ -98,23 +106,30 @@ public class CheckingLogic {
 
                         line1.setStyle(line1.getStyle().withColor(DARK_RED));
                         line2.setStyle(line2.getStyle().withColor(RED));
-                        link.setStyle(link.getStyle().withColor(RED).withUnderlined(true).withClickEvent(new ClickEvent.OpenUrl(URI.create("https://truevanilla.net/wiki/A.I.I.D.A./Storage"))));
+                        link.setStyle(link.getStyle().withColor(RED).withUnderlined(true).withClickEvent(
+                                new ClickEvent.OpenUrl(URI.create("https://truevanilla.net/wiki/A.I.I.D.A./Storage"))));
                         line3.setStyle(line3.getStyle().withColor(GOLD));
-                        codeText.setStyle(codeText.getStyle().withColor(GOLD).withClickEvent(new ClickEvent.CopyToClipboard(code.toString())).withHoverEvent(new HoverEvent.ShowText(Component.literal("Click to copy!"))));
+                        codeText.setStyle(codeText.getStyle().withColor(GOLD)
+                                .withClickEvent(new ClickEvent.CopyToClipboard(code.toString()))
+                                .withHoverEvent(new HoverEvent.ShowText(Component.literal("Click to copy!"))));
 
-                        MutableComponent message = Component.literal("").append(line1).append(line2).append(link).append(line3).append(codeText);
+                        MutableComponent message = Component.literal("").append(line1).append(line2).append(link)
+                                .append(line3).append(codeText);
                         player.sendSystemMessage(message);
-                        BackendInstance.LOGGER.warn(pos.getX() + " " + pos.getY() + " " + pos.getZ() + " had an illegal item");
+                        BackendInstance.LOGGER
+                                .warn(pos.getX() + " " + pos.getY() + " " + pos.getZ() + " had an illegal item");
                     }
                     container.removeItem(i, iStack.getCount());
                     container.setChanged();
                 } else {
                     // anti dupe id tracking
                     AntiDupeCheckingLogic.track(iStack, player, pos);
-                
-                    if (!dupeIds.add(AntiDupeCheckingLogic.getDupeId(iStack))) {
+
+                    if (!dupeIds.add(AntiDupeCheckingLogic.getDupeId(iStack))
+                            && AntiDupeCheckingLogic.isTrackable(iStack)) {
                         code = ReportingLogic.saveInventoryReport(player, iStack);
-                        MutableComponent line1 = Component.literal("An automated scan has found duplicate items in your inventory and/or nearby storage blocks");
+                        MutableComponent line1 = Component.literal(
+                                "An automated scan has found duplicate items in your inventory and/or nearby storage blocks");
                         MutableComponent line2 = Component.literal("\nFor more info, go here: ");
                         MutableComponent link = Component.literal("https://truevanilla.net/wiki/A.I.I.D.A./Inventory");
                         MutableComponent line3 = Component.literal("\nCode: ");
@@ -122,11 +137,16 @@ public class CheckingLogic {
 
                         line1.setStyle(line1.getStyle().withColor(DARK_RED));
                         line2.setStyle(line2.getStyle().withColor(RED));
-                        link.setStyle(link.getStyle().withColor(RED).withUnderlined(true).withClickEvent(new ClickEvent.OpenUrl(URI.create("https://truevanilla.net/wiki/A.I.I.D.A./Storage"))));
+                        link.setStyle(link.getStyle().withColor(RED).withUnderlined(true)
+                                .withClickEvent(new ClickEvent.OpenUrl(
+                                        URI.create("https://truevanilla.net/wiki/A.I.I.D.A./Inventory"))));
                         line3.setStyle(line3.getStyle().withColor(GOLD));
-                        codeText.setStyle(codeText.getStyle().withColor(GOLD).withClickEvent(new ClickEvent.CopyToClipboard(code.toString())).withHoverEvent(new HoverEvent.ShowText(Component.literal("Click to copy!"))));
-                        
-                        MutableComponent message = Component.literal("").append(line1).append(line2).append(link).append(line3).append(codeText);
+                        codeText.setStyle(codeText.getStyle().withColor(GOLD)
+                                .withClickEvent(new ClickEvent.CopyToClipboard(code.toString()))
+                                .withHoverEvent(new HoverEvent.ShowText(Component.literal("Click to copy!"))));
+
+                        MutableComponent message = Component.literal("").append(line1).append(line2).append(link)
+                                .append(line3).append(codeText);
                         player.sendSystemMessage(message);
                         BackendInstance.LOGGER.warn(player.getPlainTextName() + " had an illegal item");
                         container.removeItem(i, iStack.getCount());
@@ -143,7 +163,7 @@ public class CheckingLogic {
         if (nbt.contains("immune") && nbt.getBoolean("immune").get()) {
             return false;
         }
-        
+
         int rCost = iStack.get(DataComponents.REPAIR_COST);
         String itemId = iStack.getItem().toString();
         ItemEnchantments iEnchantments = iStack.getEnchantments();
@@ -159,7 +179,7 @@ public class CheckingLogic {
         if (iStack.getCount() > iStack.getMaxStackSize()) {
             return true;
         }
-        
+
         // item IDs
         if (Arrays.asList(BLACKLISTED_ITEMS).contains(itemId) || itemId.contains("spawn_egg")) {
             return true;
@@ -168,7 +188,8 @@ public class CheckingLogic {
         // enchantments
         for (Holder<Enchantment> enchantment : iEnchantments.keySet()) {
             int level = iEnchantments.getLevel(enchantment);
-            if (level > enchantment.value().getMaxLevel() || level < enchantment.value().getMinLevel() || enchantment.value().isSupportedItem(iStack) == false) {
+            if (level > enchantment.value().getMaxLevel() || level < enchantment.value().getMinLevel()
+                    || enchantment.value().isSupportedItem(iStack) == false) {
                 return true;
             }
         }
@@ -186,22 +207,22 @@ public class CheckingLogic {
             for (int y = -3; y <= 3; y++) {
                 for (int z = -4; z <= 4; z++) {
                     // get block pos
-                    BlockPos pos = new BlockPos(x+pPos.getX(), y+pPos.getY(), z+pPos.getZ());
+                    BlockPos pos = new BlockPos(x + pPos.getX(), y + pPos.getY(), z + pPos.getZ());
                     BlockState blockState = world.getBlockState(pos);
                     // if container
                     if (blockState.getBlock() == Blocks.CHEST ||
-                        blockState.getBlock() == Blocks.BARREL ||
-                        blockState.getBlock() == Blocks.SHULKER_BOX ||
-                        blockState.getBlock() == Blocks.FURNACE ||
-                        blockState.getBlock() == Blocks.BLAST_FURNACE ||
-                        blockState.getBlock() == Blocks.SMOKER || 
-                        blockState.getBlock() == Blocks.DISPENSER ||
-                        blockState.getBlock() == Blocks.DROPPER ||
-                        blockState.getBlock() == Blocks.HOPPER) {
-                        
+                            blockState.getBlock() == Blocks.BARREL ||
+                            blockState.getBlock() == Blocks.SHULKER_BOX ||
+                            blockState.getBlock() == Blocks.FURNACE ||
+                            blockState.getBlock() == Blocks.BLAST_FURNACE ||
+                            blockState.getBlock() == Blocks.SMOKER ||
+                            blockState.getBlock() == Blocks.DISPENSER ||
+                            blockState.getBlock() == Blocks.DROPPER ||
+                            blockState.getBlock() == Blocks.HOPPER) {
+
                         BlockEntity blockEntity = world.getBlockEntity(pos);
                         Container bEntity;
-                            
+
                         // casting
                         if (blockEntity instanceof BarrelBlockEntity barrel) {
                             bEntity = barrel;
@@ -220,7 +241,7 @@ public class CheckingLogic {
                         } else {
                             continue;
                         }
-                        
+
                         // check items
                         checkItems(bEntity, player, pos);
                     }

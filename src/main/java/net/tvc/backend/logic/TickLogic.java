@@ -10,7 +10,7 @@ public class TickLogic {
 
     public static void check(MinecraftServer server) {
         tickCounter++;
-        if (tickCounter >= 40) {
+        if (tickCounter >= 30) {
             for (ServerPlayer player : PlayerLookup.all(server)) {
                 CheckingLogic.checkPlayer(player);
                 CheckingLogic.checkPosition(player);
