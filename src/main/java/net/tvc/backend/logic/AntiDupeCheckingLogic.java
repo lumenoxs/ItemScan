@@ -46,10 +46,8 @@ public class AntiDupeCheckingLogic {
     }
 
     public static void track(ItemStack iStack, ServerPlayer player, BlockPos pos) {
-        BackendInstance.LOGGER.info("Tracking item: " + iStack.getItem().toString() + " x" + iStack.getCount());
         if (!isTrackable(iStack))
             return;
-        BackendInstance.LOGGER.info("Item is trackable, proceeding with tracking logic...");
 
         // get dupe id
         UUID dupeId = getDupeId(iStack);

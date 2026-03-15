@@ -15,9 +15,7 @@
 			"net.tvc.backend.BackendInstance"
 		]
 	},
-	"mixins": [
-		"tvc-backend.mixins.json"
-	],
+	"mixins": [],
 	"depends": {
 		"fabricloader": ">=0.17.2",
 		"minecraft": "~1.21.10",
