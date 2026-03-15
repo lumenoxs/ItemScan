@@ -2,8 +2,6 @@ package net.tvc.backend.logic;
 
 import java.util.UUID;
 
-import net.minecraft.core.BlockPos;
-
 import net.minecraft.nbt.CompoundTag;
 
 import net.minecraft.server.level.ServerLevel;
@@ -12,8 +10,9 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.block.state.BlockState;
-import net.tvc.backend.BackendInstance;
 import net.minecraft.world.level.block.Blocks;
+
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 
 public class AntiDupeCheckingLogic {
@@ -41,7 +40,7 @@ public class AntiDupeCheckingLogic {
     public static boolean isTrackable(ItemStack iStack) {
         String itemId = iStack.getItem().toString();
         return (itemId.contains("diamond") || itemId.contains("netherite") || itemId.contains("shulker_box"))
-                && !itemId.equals("diamond") && !itemId.contains("block") && !itemId.contains("ore")
+                && !itemId.equals("minecraft:diamond") && !itemId.contains("block") && !itemId.contains("ore")
                 && !itemId.contains("ingot") && !itemId.contains("scrap") && !itemId.contains("upgrade");
     }
 

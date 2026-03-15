@@ -1,5 +1,8 @@
 package net.tvc.backend.logic;
 
+import net.tvc.backend.utils.DiscordWebhook;
+import net.tvc.backend.utils.EnvLoader;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -10,15 +13,16 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
-import net.tvc.backend.utils.DiscordWebhook;
-import net.tvc.backend.utils.EnvLoader;
 
 import java.awt.Color;
+
 import java.io.IOException;
+
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+
 import java.time.Instant;
 
 public class ReportingLogic {
