@@ -81,6 +81,7 @@ public class ReportingLogic {
         return json;
     }
 
+    @SuppressWarnings("null")
     private static synchronized void saveReport(JsonObject report) {
         try {
             JsonArray reports;
