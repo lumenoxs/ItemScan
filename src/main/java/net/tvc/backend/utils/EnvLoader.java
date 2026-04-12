@@ -12,15 +12,15 @@ import java.util.Map;
 import net.tvc.backend.BackendInstance;
 
 /**
- * Minimal .env loader. Reads a file named `.env` in the plugin data directory.
- * Lines starting with `#` are ignored. Simple KEY=VALUE parsing.
- */
+* Minimal .env loader. Reads a file named `.env` in the plugin data directory.
+* Lines starting with `#` are ignored. Simple KEY=VALUE parsing.
+*/
 public final class EnvLoader {
     private static volatile Map<String, String> env = null;
-
+    
     private EnvLoader() {
     }
-
+    
     private static void load() {
         if (env != null)
             return;
@@ -47,7 +47,7 @@ public final class EnvLoader {
                                 String val = line.substring(idx + 1).trim();
                                 // strip optional surrounding quotes
                                 if ((val.startsWith("\"") && val.endsWith("\""))
-                                        || (val.startsWith("'") && val.endsWith("'"))) {
+                                    || (val.startsWith("'") && val.endsWith("'"))) {
                                     val = val.substring(1, val.length() - 1);
                                 }
                                 map.put(key, val);
@@ -65,7 +65,7 @@ public final class EnvLoader {
             env = Collections.unmodifiableMap(map);
         }
     }
-
+    
     public static String get(String key) {
         if (env == null)
             load();

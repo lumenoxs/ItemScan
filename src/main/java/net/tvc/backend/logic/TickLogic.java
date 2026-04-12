@@ -6,16 +6,30 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.MinecraftServer;
 
 public class TickLogic {
-    public static int tickCounter = 0;
-
+    public static int ticks = 0;
+    
     public static void check(MinecraftServer server) {
-        tickCounter++;
-        if (tickCounter >= 30) {
+        ticks++;
+        if (ticks >= 200) ticks = 0;
+        if (ticks % 5 == 0) {
             for (ServerPlayer player : PlayerLookup.all(server)) {
-                CheckingLogic.checkPlayer(player);
-                CheckingLogic.checkPosition(player);
+                CheckingLogic.checkPlayerInventory(player);
             }
-            tickCounter = 0;
+        }
+        if (ticks % 20 == 0) {
+            for (ServerPlayer player : PlayerLookup.all(server)) {
+                CheckingLogic.checkPlayerPosition(player, 3, 0);
+            }
+        }
+        if (ticks % 40 == 0) {
+            for (ServerPlayer player : PlayerLookup.all(server)) {
+                CheckingLogic.checkPlayerPosition(player, 5, 3);
+            }
+        }
+        if (ticks % 100 == 0) {
+            for (ServerPlayer player : PlayerLookup.all(server)) {
+                CheckingLogic.checkPlayerPosition(player, 7, 5);
+            }
         }
     }
 }

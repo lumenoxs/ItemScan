@@ -1,7 +1,7 @@
 # TVC-Backend
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Version](https://img.shields.io/badge/version-1.1.0-green.svg)
+![Version](https://img.shields.io/badge/version-1.1.2-green.svg)
 
 ## Description
 

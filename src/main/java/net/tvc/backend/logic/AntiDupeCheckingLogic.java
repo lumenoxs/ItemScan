@@ -23,7 +23,7 @@ public class AntiDupeCheckingLogic {
         nbt.putString("identifier", dupeId.toString());
         CustomData.set(DataComponents.CUSTOM_DATA, iStack, nbt);
     }
-
+    
     @SuppressWarnings("null")
     public static UUID getDupeId(ItemStack iStack) {
         // get the dupe id
@@ -31,54 +31,57 @@ public class AntiDupeCheckingLogic {
         UUID id = nbt.contains("identifier") ? UUID.fromString(nbt.getString("identifier").get()) : null;
         return id;
     }
-
+    
     public static void createDupeId(ItemStack iStack) {
         // add the dupe id to the nbt
         setDupeId(iStack, AntiDupeDB.register(iStack));
     }
-
+    
     public static boolean isTrackable(ItemStack iStack) {
         String itemId = iStack.getItem().toString();
         return (itemId.contains("diamond") || itemId.contains("netherite") || itemId.contains("shulker_box"))
-                && !itemId.equals("minecraft:diamond") && !itemId.contains("block") && !itemId.contains("ore")
-                && !itemId.contains("ingot") && !itemId.contains("scrap") && !itemId.contains("upgrade");
+        && !itemId.equals("minecraft:diamond") && !itemId.contains("block") && !itemId.contains("ore")
+        && !itemId.contains("ingot") && !itemId.contains("scrap") && !itemId.contains("upgrade");
     }
-
+    
     public static void track(ItemStack iStack, ServerPlayer player, BlockPos pos) {
         if (!isTrackable(iStack))
             return;
-
+        
         // get dupe id
         UUID dupeId = getDupeId(iStack);
-
+        
         if (dupeId == null) {
             createDupeId(iStack);
             dupeId = getDupeId(iStack);
         }
-
+        
         // update location and nbt
         String location = getLocationString(player, pos);
         String nbtString = getNBTString(iStack);
-
+        
         AntiDupeDB.updateLocation(dupeId, location);
         AntiDupeDB.updateNBT(dupeId, nbtString);
     }
-
+    
     private static String getNBTString(ItemStack iStack) {
-        return iStack.getTags().toString();
+        return iStack.getTags()
+            .map(tag -> tag.location().toString())
+            .toList()
+            .toString();
     }
-
+    
     private static String getLocationString(ServerPlayer player, BlockPos pos) {
         if (pos == null) {
             return "player:" + player.getName().getString() + " at X:" +
-                    Math.round(player.getX()) + " Y:" +
-                    Math.round(player.getY()) + " Z:" +
-                    Math.round(player.getZ());
+            Math.round(player.getX()) + " Y:" +
+            Math.round(player.getY()) + " Z:" +
+            Math.round(player.getZ());
         } else {
             ServerLevel world = player.level();
             BlockState blockState = world.getBlockState(pos);
             String containerType = "unknown";
-
+            
             if (blockState.getBlock() == Blocks.CHEST) {
                 containerType = "chest";
             } else if (blockState.getBlock() == Blocks.BARREL) {
@@ -86,7 +89,7 @@ public class AntiDupeCheckingLogic {
             } else if (blockState.getBlock() == Blocks.SHULKER_BOX) {
                 containerType = "shulker";
             }
-
+            
             return containerType + " at X:" + pos.getX() + " Y:" + pos.getY() + " Z:" + pos.getZ();
         }
     }
