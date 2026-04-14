@@ -9,6 +9,7 @@ import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
+import net.minecraft.world.item.equipment.trim.ArmorTrim;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
 import net.minecraft.core.component.DataComponents;
@@ -19,8 +20,10 @@ import net.minecraft.nbt.CompoundTag;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -41,6 +44,26 @@ public class IllegalItemService {
         "minecraft:end_portal",
         "minecraft:bedrock"
     };
+    
+    private static String getItemSignature(ItemStack stack) {
+        if (stack.isEmpty()) return "empty";
+        StringBuilder sig = new StringBuilder();
+        
+        // item type
+        sig.append(stack.getItem());
+        
+        // durability
+        if (stack.isDamageableItem()) sig.append("|d:").append(stack.getDamageValue());
+        
+        // enchants
+        sig.append("|e:").append(stack.getEnchantments());
+        
+        // trims
+        ArmorTrim trim = stack.get(DataComponents.TRIM);
+        if (trim != null) sig.append("|t:").append(trim);
+        
+        return sig.toString();
+    }
     
     private static List<ItemStack> getItems(Container container) {
         List<ItemStack> list = new ArrayList<>();
@@ -66,27 +89,54 @@ public class IllegalItemService {
     
     public static void checkItems(List<ItemStack> items, ServerPlayer player, BlockPos pos) {
         // loop through items in container
-        Set<UUID> dupeIds = new HashSet<>();
-        for (ItemStack iStack : items) {
-            if (!iStack.isEmpty()) {
-                // check item
-                if (checkItem(iStack, player, pos)) {
+        
+        Map<String, List<ItemStack>> grouped = new HashMap<>();
+        
+        for (ItemStack stack : items) {
+            if (stack.isEmpty()) continue;
+            
+            String sig = getItemSignature(stack);
+            grouped.computeIfAbsent(sig, k -> new ArrayList<>()).add(stack);
+        }
+        
+        int threshold = Math.max(24, (int)(items.size() * 0.88));
+        
+        for (List<ItemStack> group : grouped.values()) {
+            if (group.size() >= threshold) {
+                // 🚨 too many identical items → remove
+                for (ItemStack iStack : group) {
                     if (pos == null) {
-                        // inventory report
                         ReportService.saveInventoryReport(player, iStack);
                     } else {
-                        // chest report
                         ReportService.saveStorageReport(player, iStack, pos);
                     }
                     iStack.setCount(0);
-                } else {
-                    // anti dupe id tracking
-                    DupeTrackingService.track(iStack, player, pos);
-                    
-                    if (!dupeIds.add(DupeTrackingService.getDupeId(iStack))
-                        && DupeTrackingService.isTrackable(iStack)) {
-                        ReportService.saveInventoryReport(player, iStack);
-                        iStack.setCount(0);
+                }
+            } else {
+                Set<UUID> dupeIds = new HashSet<>();
+                
+                for (ItemStack iStack : group) {
+                    if (!iStack.isEmpty()) {
+                        // check item
+                        if (checkItem(iStack, player, pos)) {
+                            if (pos == null) {
+                                // inventory report
+                                ReportService.saveInventoryReport(player, iStack);
+                            } else {
+                                // chest report
+                                ReportService.saveStorageReport(player, iStack, pos);
+                            }
+                            iStack.setCount(0);
+                        } else {
+                            // anti dupe id tracking
+                            DupeTrackingService.track(iStack, player, pos);
+                            
+                            if (!dupeIds.add(DupeTrackingService.getDupeId(iStack))
+                                && DupeTrackingService.isTrackable(iStack)) {
+                                ReportService.saveInventoryReport(player, iStack);
+                                iStack.setCount(0);
+                            }
+                        }
                     }
                 }
             }

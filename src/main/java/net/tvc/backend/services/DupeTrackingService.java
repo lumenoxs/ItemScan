@@ -95,4 +95,8 @@ public class DupeTrackingService {
             return containerType + " at X:" + pos.getX() + " Y:" + pos.getY() + " Z:" + pos.getZ();
         }
     }
+    
+    public static void addHistoryLog(UUID dupeId, String type, String info) {
+        DupeDataStore.addHistoryLog(dupeId, type, info);
+    }
 }
