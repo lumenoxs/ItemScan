@@ -1,4 +1,4 @@
-package net.tvc.backend.logic;
+package net.tvc.backend.services;
 
 import java.util.UUID;
 
@@ -15,7 +15,9 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 
-public class AntiDupeCheckingLogic {
+import net.tvc.backend.data.DupeDataStore;
+
+public class DupeTrackingService {
     @SuppressWarnings("null")
     public static void setDupeId(ItemStack iStack, UUID dupeId) {
         // set dupe id
@@ -34,7 +36,7 @@ public class AntiDupeCheckingLogic {
     
     public static void createDupeId(ItemStack iStack) {
         // add the dupe id to the nbt
-        setDupeId(iStack, AntiDupeDB.register(iStack));
+        setDupeId(iStack, DupeDataStore.register(iStack));
     }
     
     public static boolean isTrackable(ItemStack iStack) {
@@ -60,8 +62,8 @@ public class AntiDupeCheckingLogic {
         String location = getLocationString(player, pos);
         String nbtString = getNBTString(iStack);
         
-        AntiDupeDB.updateLocation(dupeId, location);
-        AntiDupeDB.updateNBT(dupeId, nbtString);
+        DupeDataStore.updateLocation(dupeId, location);
+        DupeDataStore.updateNBT(dupeId, nbtString);
     }
     
     private static String getNBTString(ItemStack iStack) {

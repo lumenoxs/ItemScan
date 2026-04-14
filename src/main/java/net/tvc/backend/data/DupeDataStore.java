@@ -1,4 +1,4 @@
-package net.tvc.backend.logic;
+package net.tvc.backend.data;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -21,7 +21,7 @@ import java.nio.file.Files;
 
 import java.time.Instant;
 
-public class AntiDupeDB {
+public class DupeDataStore {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path DB_DIR = Paths.get(System.getProperty("user.home"), "AntiDupe-ItemsDB");
     

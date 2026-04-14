@@ -1,5 +1,6 @@
-package net.tvc.backend.logic;
+package net.tvc.backend.services;
 
+import net.tvc.backend.BackendInstance;
 import net.tvc.backend.utils.DiscordWebhook;
 import net.tvc.backend.utils.EnvLoader;
 
@@ -10,14 +11,20 @@ import com.google.gson.JsonObject;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
 
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.TextColor;
+
 import java.awt.Color;
 
 import java.io.IOException;
-
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.Path;
@@ -25,14 +32,41 @@ import java.nio.file.StandardOpenOption;
 
 import java.time.Instant;
 
-public class ReportingLogic {
+public class ReportService {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path REPORT_FILE = Paths.get("illegal_item_reports.json");
     private static final String WEBHOOK_URL = EnvLoader.get("ILLEGAL_ITEMS_DISCORD_WEBHOOK_URL");
+
+    @SuppressWarnings("null")
+    public static void sendMessage(ServerPlayer player, String cmessage, Integer code) {
+        TextColor DARK_RED = TextColor.fromRgb(0xAA0000);
+        TextColor RED = TextColor.fromRgb(0xFF5555);
+        TextColor GOLD = TextColor.fromRgb(0xFFAA00);
+
+        MutableComponent line1 = Component.literal(cmessage);
+        MutableComponent line2 = Component.literal("\nFor more info, go here: ");
+        MutableComponent link = Component.literal("https://truevanilla.net/wiki/SCRAT/Inventory");
+        MutableComponent line3 = Component.literal("\nCode: ");
+        MutableComponent codeText = Component.literal(code.toString());
+
+        line1.setStyle(line1.getStyle().withColor(DARK_RED));
+        line2.setStyle(line2.getStyle().withColor(RED));
+        link.setStyle(link.getStyle().withColor(RED).withUnderlined(true)
+                .withClickEvent(new ClickEvent.OpenUrl(URI.create("https://truevanilla.net/wiki/SCRAT/Inventory"))));
+        line3.setStyle(line3.getStyle().withColor(GOLD));
+        codeText.setStyle(codeText.getStyle().withColor(GOLD)
+                .withClickEvent(new ClickEvent.CopyToClipboard(code.toString()))
+                .withHoverEvent(new HoverEvent.ShowText(Component.literal("Click to copy!"))));
+
+        MutableComponent message = Component.literal("").append(line1).append(line2).append(link)
+                .append(line3).append(codeText);
+        player.sendSystemMessage(message);
+        BackendInstance.LOGGER.warn(player.getPlainTextName() + " had an illegal item");
+    }
     
     public static Integer saveInventoryReport(ServerPlayer player, ItemStack stack) {
         player.setGameMode(GameType.SURVIVAL);
-        double code = Math.floor(Math.random() * 899999) + 100000;
+        Integer code = (int) (Math.floor(Math.random() * 999999) + 100000);
         JsonObject report = buildBaseReport(player, stack, code);
         report.addProperty("type", "inventory");
         
@@ -44,12 +78,13 @@ public class ReportingLogic {
         report.add("playerPosition", position);
         
         saveReport(report);
+        sendMessage(player, "An automated scan has successfully found and removed illegal item(s) in your inventory", code);
         return (int) code;
     }
     
     public static Integer saveStorageReport(ServerPlayer player, ItemStack stack, BlockPos pos) {
         player.setGameMode(GameType.SURVIVAL);
-        double code = Math.floor(Math.random() * 999999) + 100000;
+        Integer code = (int) (Math.floor(Math.random() * 999999) + 100000);
         JsonObject report = buildBaseReport(player, stack, code);
         report.addProperty("type", "storage");
         
@@ -61,12 +96,13 @@ public class ReportingLogic {
         report.add("storagePosition", position);
         
         saveReport(report);
+        sendMessage(player, "An automated scan has successfully found and removed illegal item(s) in a storage block near you", code);
         return (int) code;
     }
     
     /* ===================== INTERNAL ===================== */
     
-    private static JsonObject buildBaseReport(ServerPlayer player, ItemStack stack, double code) {
+    private static JsonObject buildBaseReport(ServerPlayer player, ItemStack stack, Integer code) {
         JsonObject json = new JsonObject();
         
         json.addProperty("timestamp", Instant.now().toString());
