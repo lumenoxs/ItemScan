@@ -127,8 +127,7 @@ public class DupeDataStore {
     }
     
     private static Map<String, Object> castMapToStringObjectMap(Map<?, ?> map) {
-        // this is a workaround for the fact that gson returns Map<String,Object> as
-        // Map<?,?>
+        // this is a workaround for the fact that gson returns Map<String,Object> as Map<?,?>
         // func made by ai
         Map<String, Object> result = new HashMap<>();
         for (Map.Entry<?, ?> entry : map.entrySet()) {

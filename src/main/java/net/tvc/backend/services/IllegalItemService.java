@@ -20,10 +20,8 @@ import net.minecraft.nbt.CompoundTag;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -45,6 +43,7 @@ public class IllegalItemService {
         "minecraft:bedrock"
     };
     
+    @SuppressWarnings("unused")
     private static String getItemSignature(ItemStack stack) {
         if (stack.isEmpty()) return "empty";
         StringBuilder sig = new StringBuilder();
@@ -88,56 +87,17 @@ public class IllegalItemService {
     }
     
     public static void checkItems(List<ItemStack> items, ServerPlayer player, BlockPos pos) {
-        // loop through items in container
+        Set<UUID> dupeIds = new HashSet<>();
         
-        Map<String, List<ItemStack>> grouped = new HashMap<>();
-        
-        for (ItemStack stack : items) {
-            if (stack.isEmpty()) continue;
-            
-            String sig = getItemSignature(stack);
-            grouped.computeIfAbsent(sig, k -> new ArrayList<>()).add(stack);
-        }
-        
-        int threshold = Math.max(24, (int)(items.size() * 0.88));
-        
-        for (List<ItemStack> group : grouped.values()) {
-            if (group.size() >= threshold) {
-                // 🚨 too many identical items → remove
-                for (ItemStack iStack : group) {
-                    if (pos == null) {
-                        ReportService.saveInventoryReport(player, iStack);
-                    } else {
-                        ReportService.saveStorageReport(player, iStack, pos);
-                    }
-                    iStack.setCount(0);
-                }
-            } else {
-                Set<UUID> dupeIds = new HashSet<>();
+        // loop through items
+        for (ItemStack iStack : items) {
+            if (!iStack.isEmpty()) {
+                DupeTrackingService.track(iStack, player, pos);
                 
-                for (ItemStack iStack : group) {
-                    if (!iStack.isEmpty()) {
-                        // check item
-                        if (checkItem(iStack, player, pos)) {
-                            if (pos == null) {
-                                // inventory report
-                                ReportService.saveInventoryReport(player, iStack);
-                            } else {
-                                // chest report
-                                ReportService.saveStorageReport(player, iStack, pos);
-                            }
-                            iStack.setCount(0);
-                        } else {
-                            // anti dupe id tracking
-                            DupeTrackingService.track(iStack, player, pos);
-                            
-                            if (!dupeIds.add(DupeTrackingService.getDupeId(iStack))
-                                && DupeTrackingService.isTrackable(iStack)) {
-                                ReportService.saveInventoryReport(player, iStack);
-                                iStack.setCount(0);
-                            }
-                        }
-                    }
+                if ((!dupeIds.add(DupeTrackingService.getDupeId(iStack)) && DupeTrackingService.isTrackable(iStack)) || checkItem(iStack, player, pos)) {
+                    if (pos == null) ReportService.saveInventoryReport(player, iStack);
+                    else ReportService.saveStorageReport(player, iStack, pos);
+                    iStack.setCount(0);
                 }
             }
         }
@@ -146,9 +106,7 @@ public class IllegalItemService {
     @SuppressWarnings("null")
     public static boolean checkItem(ItemStack iStack, ServerPlayer player, BlockPos pos) {
         CompoundTag nbt = iStack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
-        if (nbt.contains("immune") && nbt.getBoolean("immune").get()) {
-            return false;
-        }
+        if (nbt.contains("immune") && nbt.getBoolean("immune").get()) return false;
         
         int rCost = iStack.get(DataComponents.REPAIR_COST);
         String itemId = iStack.getItem().toString();
