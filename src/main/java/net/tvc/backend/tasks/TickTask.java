@@ -12,35 +12,37 @@ public class TickTask {
     public static int ticks = 0;
     
     public static void check(MinecraftServer server) {
-        if (!Config.ENABLE_BACKEND || !Config.ENABLE_ITEM_SCAN) {
+        if (!Config.get().enabled) {
             return;
         }
 
         ticks++;
         if (ticks >= 200) ticks = 0;
 
-        if (Config.ENABLE_INVENTORY_SCAN && Config.INVENTORY_CHECK_TICK_INTERVAL > 0 && ticks % Config.INVENTORY_CHECK_TICK_INTERVAL == 0) {
+        var inventoryScan = Config.get().inventoryScan;
+        if (inventoryScan.enabled && inventoryScan.interval > 0 && ticks % inventoryScan.interval == 0) {
             for (ServerPlayer player : PlayerLookup.all(server)) {
                 IllegalItemService.checkPlayerInventory(player);
             }
         }
 
-        if (Config.ENABLE_PLAYER_POSITION_SCAN) {
-            if (Config.ENABLE_PLAYER_POSITION_SMALL_SCAN && Config.POSITION_SMALL_CHECK_TICK_INTERVAL > 0 && ticks % Config.POSITION_SMALL_CHECK_TICK_INTERVAL == 0) {
+        var positionScan = Config.get().positionScan;
+        if (positionScan.enabled) {
+            if (positionScan.small.enabled && positionScan.small.interval > 0 && ticks % positionScan.small.interval == 0) {
                 for (ServerPlayer player : PlayerLookup.all(server)) {
-                    IllegalItemService.checkPlayerPosition(player, Config.POSITION_SMALL_RADIUS, Config.POSITION_SMALL_INNER);
+                    IllegalItemService.checkPlayerPosition(player, positionScan.small.radius, positionScan.small.innerRadius);
                 }
             }
 
-            if (Config.ENABLE_PLAYER_POSITION_MEDIUM_SCAN && Config.POSITION_MEDIUM_CHECK_TICK_INTERVAL > 0 && ticks % Config.POSITION_MEDIUM_CHECK_TICK_INTERVAL == 0) {
+            if (positionScan.medium.enabled && positionScan.medium.interval > 0 && ticks % positionScan.medium.interval == 0) {
                 for (ServerPlayer player : PlayerLookup.all(server)) {
-                    IllegalItemService.checkPlayerPosition(player, Config.POSITION_MEDIUM_RADIUS, Config.POSITION_MEDIUM_INNER);
+                    IllegalItemService.checkPlayerPosition(player, positionScan.medium.radius, positionScan.medium.innerRadius);
                 }
             }
 
-            if (Config.ENABLE_PLAYER_POSITION_LARGE_SCAN && Config.POSITION_LARGE_CHECK_TICK_INTERVAL > 0 && ticks % Config.POSITION_LARGE_CHECK_TICK_INTERVAL == 0) {
+            if (positionScan.large.enabled && positionScan.large.interval > 0 && ticks % positionScan.large.interval == 0) {
                 for (ServerPlayer player : PlayerLookup.all(server)) {
-                    IllegalItemService.checkPlayerPosition(player, Config.POSITION_LARGE_RADIUS, Config.POSITION_LARGE_INNER);
+                    IllegalItemService.checkPlayerPosition(player, positionScan.large.radius, positionScan.large.innerRadius);
                 }
             }
         }

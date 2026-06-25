@@ -26,8 +26,6 @@ import java.util.Set;
 import java.util.UUID;
 
 public class IllegalItemService {
-    private static final Set<String> BLACKLISTED_ITEMS = Config.BLACKLISTED_ITEMS;
-    private static final Set<String> BLACKLISTED_PATTERNS = Config.BLACKLISTED_ITEM_PATTERNS;
     
     @SuppressWarnings("unused")
     private static String getItemSignature(ItemStack stack) {
@@ -73,7 +71,7 @@ public class IllegalItemService {
     }
     
     public static void checkItems(List<ItemStack> items, ServerPlayer player, BlockPos pos) {
-        if (!Config.ENABLE_ITEM_SCAN) {
+        if (!Config.get().enabled) {
             return;
         }
 
@@ -84,7 +82,7 @@ public class IllegalItemService {
             if (!iStack.isEmpty()) {
                 boolean isDuplicate = false;
 
-                if (Config.ENABLE_DUPE_TRACKING && DupeTrackingService.isTrackable(iStack)) {
+                if (Config.get().tracking.dupe && DupeTrackingService.isTrackable(iStack)) {
                     DupeTrackingService.track(iStack, player, pos);
                     isDuplicate = !dupeIds.add(DupeTrackingService.getDupeId(iStack));
                 }
@@ -123,11 +121,11 @@ public class IllegalItemService {
         }
         
         // item IDs
-        if (BLACKLISTED_ITEMS.contains(itemId)) {
+        if (Config.get().blacklistedItems.contains(itemId)) {
             return true;
         }
 
-        for (String pattern : BLACKLISTED_PATTERNS) {
+        for (String pattern : Config.get().blacklistedItemPatterns) {
             if (!pattern.isBlank() && itemId.contains(pattern)) {
                 return true;
             }

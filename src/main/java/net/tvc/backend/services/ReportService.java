@@ -34,8 +34,6 @@ import java.time.Instant;
 
 public class ReportService {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final Path REPORT_FILE = Paths.get(Config.REPORT_FILE_PATH);
-    private static final String WEBHOOK_URL = Config.DISCORD_WEBHOOK_URL;
 
     @SuppressWarnings("null")
     public static void sendMessage(ServerPlayer player, String cmessage, Integer code) {
@@ -125,11 +123,13 @@ public class ReportService {
         @SuppressWarnings("null")
         private static synchronized void saveReport(JsonObject report) {
             try {
-                if (Config.ENABLE_REPORT_FILE) {
+                var fileReport = Config.get().reports.file;
+                if (fileReport.enabled) {
+                    Path reportFile = Paths.get(fileReport.path);
                     JsonArray reports;
 
-                    if (Files.exists(REPORT_FILE)) {
-                        String existing = Files.readString(REPORT_FILE);
+                    if (Files.exists(reportFile)) {
+                        String existing = Files.readString(reportFile);
                         reports = GSON.fromJson(existing, JsonArray.class);
                     } else {
                         reports = new JsonArray();
@@ -138,17 +138,18 @@ public class ReportService {
                     reports.add(report);
 
                     Files.writeString(
-                        REPORT_FILE,
+                        reportFile,
                         GSON.toJson(reports),
                         StandardOpenOption.CREATE,
                         StandardOpenOption.TRUNCATE_EXISTING);
                 }
 
-                if (Config.ENABLE_DISCORD_REPORTS) {
-                    if (!WEBHOOK_URL.isBlank()) {
-                        sendDiscordWebhook(report);
+                var discordReport = Config.get().reports.discord;
+                if (discordReport.enabled) {
+                    if (!discordReport.webhookUrl.isBlank()) {
+                        sendDiscordWebhook(report, discordReport.webhookUrl);
                     } else {
-                        BackendInstance.LOGGER.warn("Discord reporting is enabled but DISCORD_WEBHOOK_URL is not configured.");
+                        BackendInstance.LOGGER.warn("Discord reporting is enabled but webhookUrl is not configured.");
                     }
                 }
             } catch (IOException e) {
@@ -157,9 +158,9 @@ public class ReportService {
                 }
             }
             
-            private static void sendDiscordWebhook(JsonObject report) {
+            private static void sendDiscordWebhook(JsonObject report, String webhookUrl) {
                 try {
-                    DiscordWebhook webhook = new DiscordWebhook(WEBHOOK_URL);
+                    DiscordWebhook webhook = new DiscordWebhook(webhookUrl);
                     webhook.setUsername("TVC Backend Reporter");
                     
                     DiscordWebhook.EmbedObject embed = new DiscordWebhook.EmbedObject()

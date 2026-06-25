@@ -14,8 +14,8 @@ public class BackendInstance implements ModInitializer {
 	
 	@Override
 	public void onInitialize() {
-		CallbackManager.registerCallbacks();
 		Config.load();
+		CallbackManager.registerCallbacks();
 		if (Config.get().scratCommand.enabled) SCRATRootCommand.register();
 		LOGGER.info("ItemScan initialized");
 	}
