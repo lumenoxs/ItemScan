@@ -17,31 +17,17 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 
 import net.minecraft.nbt.CompoundTag;
+import net.tvc.backend.utils.Config;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 public class IllegalItemService {
-    private static final String[] BLACKLISTED_ITEMS = {
-        "minecraft:command_block",
-        "minecraft:chain_command_block",
-        "minecraft:repeating_command_block",
-        "minecraft:command_block_minecart",
-        "minecraft:structure_block",
-        "minecraft:jigsaw",
-        "minecraft:structure_void",
-        "minecraft:barrier",
-        "minecraft:light",
-        "minecraft:debug_stick",
-        "minecraft:knowledge_book",
-        "minecraft:spawner",
-        "minecraft:end_portal",
-        "minecraft:bedrock"
-    };
+    private static final Set<String> BLACKLISTED_ITEMS = Config.BLACKLISTED_ITEMS;
+    private static final Set<String> BLACKLISTED_PATTERNS = Config.BLACKLISTED_ITEM_PATTERNS;
     
     @SuppressWarnings("unused")
     private static String getItemSignature(ItemStack stack) {
@@ -87,14 +73,23 @@ public class IllegalItemService {
     }
     
     public static void checkItems(List<ItemStack> items, ServerPlayer player, BlockPos pos) {
+        if (!Config.ENABLE_ITEM_SCAN) {
+            return;
+        }
+
         Set<UUID> dupeIds = new HashSet<>();
         
         // loop through items
         for (ItemStack iStack : items) {
             if (!iStack.isEmpty()) {
-                DupeTrackingService.track(iStack, player, pos);
-                
-                if ((!dupeIds.add(DupeTrackingService.getDupeId(iStack)) && DupeTrackingService.isTrackable(iStack)) || checkItem(iStack, player, pos)) {
+                boolean isDuplicate = false;
+
+                if (Config.ENABLE_DUPE_TRACKING && DupeTrackingService.isTrackable(iStack)) {
+                    DupeTrackingService.track(iStack, player, pos);
+                    isDuplicate = !dupeIds.add(DupeTrackingService.getDupeId(iStack));
+                }
+
+                if (isDuplicate || checkItem(iStack, player, pos)) {
                     if (pos == null) ReportService.saveInventoryReport(player, iStack);
                     else ReportService.saveStorageReport(player, iStack, pos);
                     iStack.setCount(0);
@@ -128,8 +123,14 @@ public class IllegalItemService {
         }
         
         // item IDs
-        if (Arrays.asList(BLACKLISTED_ITEMS).contains(itemId) || itemId.contains("spawn_egg")) {
+        if (BLACKLISTED_ITEMS.contains(itemId)) {
             return true;
+        }
+
+        for (String pattern : BLACKLISTED_PATTERNS) {
+            if (!pattern.isBlank() && itemId.contains(pattern)) {
+                return true;
+            }
         }
         
         // enchantments

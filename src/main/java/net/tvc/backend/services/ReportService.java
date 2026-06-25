@@ -1,8 +1,8 @@
 package net.tvc.backend.services;
 
 import net.tvc.backend.BackendInstance;
+import net.tvc.backend.utils.Config;
 import net.tvc.backend.utils.DiscordWebhook;
-import net.tvc.backend.utils.EnvLoader;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -34,8 +34,8 @@ import java.time.Instant;
 
 public class ReportService {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final Path REPORT_FILE = Paths.get("illegal_item_reports.json");
-    private static final String WEBHOOK_URL = EnvLoader.get("ILLEGAL_ITEMS_DISCORD_WEBHOOK_URL");
+    private static final Path REPORT_FILE = Paths.get(Config.REPORT_FILE_PATH);
+    private static final String WEBHOOK_URL = Config.DISCORD_WEBHOOK_URL;
 
     @SuppressWarnings("null")
     public static void sendMessage(ServerPlayer player, String cmessage, Integer code) {
@@ -125,27 +125,33 @@ public class ReportService {
         @SuppressWarnings("null")
         private static synchronized void saveReport(JsonObject report) {
             try {
-                JsonArray reports;
-                
-                if (Files.exists(REPORT_FILE)) {
-                    String existing = Files.readString(REPORT_FILE);
-                    reports = GSON.fromJson(existing, JsonArray.class);
-                } else {
-                    reports = new JsonArray();
+                if (Config.ENABLE_REPORT_FILE) {
+                    JsonArray reports;
+
+                    if (Files.exists(REPORT_FILE)) {
+                        String existing = Files.readString(REPORT_FILE);
+                        reports = GSON.fromJson(existing, JsonArray.class);
+                    } else {
+                        reports = new JsonArray();
+                    }
+
+                    reports.add(report);
+
+                    Files.writeString(
+                        REPORT_FILE,
+                        GSON.toJson(reports),
+                        StandardOpenOption.CREATE,
+                        StandardOpenOption.TRUNCATE_EXISTING);
                 }
-                
-                reports.add(report);
-                
-                Files.writeString(
-                    REPORT_FILE,
-                    GSON.toJson(reports),
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.TRUNCATE_EXISTING);
-                    
-                    // Send Discord webhook
-                    sendDiscordWebhook(report);
-                    
-                } catch (IOException e) {
+
+                if (Config.ENABLE_DISCORD_REPORTS) {
+                    if (!WEBHOOK_URL.isBlank()) {
+                        sendDiscordWebhook(report);
+                    } else {
+                        BackendInstance.LOGGER.warn("Discord reporting is enabled but DISCORD_WEBHOOK_URL is not configured.");
+                    }
+                }
+            } catch (IOException e) {
                     System.err.println("[IllegalItemReport] Failed to save report");
                     e.printStackTrace();
                 }
