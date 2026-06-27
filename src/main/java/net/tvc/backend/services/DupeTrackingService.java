@@ -46,7 +46,7 @@ public class DupeTrackingService {
         && !itemId.contains("ingot") && !itemId.contains("scrap") && !itemId.contains("upgrade");
     }
     
-    public static void track(ItemStack iStack, ServerPlayer player, BlockPos pos) {
+    public static void track(ItemStack iStack, ServerPlayer player, BlockPos pos, boolean isEnderChest) {
         if (!isTrackable(iStack))
             return;
         
@@ -59,7 +59,7 @@ public class DupeTrackingService {
         }
         
         // update location and nbt
-        String location = getLocationString(player, pos);
+        String location = getLocationString(player, pos, isEnderChest);
         String nbtString = getNBTString(iStack);
         
         DupeDataStore.updateLocation(dupeId, location);
@@ -73,12 +73,9 @@ public class DupeTrackingService {
             .toString();
     }
     
-    private static String getLocationString(ServerPlayer player, BlockPos pos) {
+    private static String getLocationString(ServerPlayer player, BlockPos pos, boolean isEnderChest) {
         if (pos == null) {
-            return "player:" + player.getName().getString() + " at X:" +
-            Math.round(player.getX()) + " Y:" +
-            Math.round(player.getY()) + " Z:" +
-            Math.round(player.getZ());
+            return "player:" + player.getName().getString() + (isEnderChest ? " enderchest" : " inventory");
         } else {
             ServerLevel world = player.level();
             BlockState blockState = world.getBlockState(pos);

@@ -45,9 +45,55 @@ public final class Config {
                 save();
             }
 
+            normalize(data);
+
         } catch (Exception e) {
             data = new Data();
+            normalize(data);
             e.printStackTrace();
+        }
+    }
+
+    public static void reload() {
+        load();
+    }
+
+    private static void normalize(Data config) {
+        if (config.scratCommand == null) {
+            config.scratCommand = new ScratCommand();
+        }
+        if (config.inventoryScan == null) {
+            config.inventoryScan = new InventoryScan();
+        }
+        if (config.positionScan == null) {
+            config.positionScan = new PositionScan();
+        }
+        if (config.tracking == null) {
+            config.tracking = new Tracking();
+        }
+        if (config.reports == null) {
+            config.reports = new Reports();
+        }
+        if (config.reports.file == null) {
+            config.reports.file = new FileReport();
+        }
+        if (config.reports.categories == null) {
+            config.reports.categories = new CategoryReports();
+        }
+        if (config.reports.categories.repairCost == null) {
+            config.reports.categories.repairCost = new DiscordReport();
+        }
+        if (config.reports.categories.dupeUuid == null) {
+            config.reports.categories.dupeUuid = new DiscordReport();
+        }
+        if (config.reports.categories.severe == null) {
+            config.reports.categories.severe = new DiscordReport();
+        }
+        if (config.blacklistedItems == null) {
+            config.blacklistedItems = new HashSet<>();
+        }
+        if (config.blacklistedItemPatterns == null) {
+            config.blacklistedItemPatterns = new HashSet<>();
         }
     }
 
@@ -95,7 +141,7 @@ public final class Config {
             "minecraft:debug_stick",
             "minecraft:knowledge_book",
             "minecraft:spawner",
-            "minecraft:end_portal",
+            "minecraft:end_portal_frame",
             "minecraft:bedrock"
         ));
 
@@ -155,7 +201,13 @@ public final class Config {
 
         public FileReport file = new FileReport();
 
-        public DiscordReport discord = new DiscordReport();
+        public CategoryReports categories = new CategoryReports();
+    }
+
+    public static final class CategoryReports {
+        public DiscordReport repairCost = new DiscordReport();
+        public DiscordReport dupeUuid = new DiscordReport();
+        public DiscordReport severe = new DiscordReport();
     }
 
     public static final class FileReport {

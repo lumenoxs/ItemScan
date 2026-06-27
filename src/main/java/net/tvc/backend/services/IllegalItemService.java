@@ -1,178 +1,279 @@
 package net.tvc.backend.services;
 
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-
 import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
-import net.minecraft.world.item.equipment.trim.ArmorTrim;
 import net.minecraft.world.level.block.entity.BlockEntity;
-
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
-
-import net.minecraft.nbt.CompoundTag;
+import net.tvc.backend.data.ViolationCategory;
+import net.tvc.backend.data.ViolationResult;
 import net.tvc.backend.utils.Config;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
 public class IllegalItemService {
-    
-    @SuppressWarnings("unused")
-    private static String getItemSignature(ItemStack stack) {
-        if (stack.isEmpty()) return "empty";
-        StringBuilder sig = new StringBuilder();
-        
-        // item type
-        sig.append(stack.getItem());
-        
-        // durability
-        if (stack.isDamageableItem()) sig.append("|d:").append(stack.getDamageValue());
-        
-        // enchants
-        sig.append("|e:").append(stack.getEnchantments());
-        
-        // trims
-        ArmorTrim trim = stack.get(DataComponents.TRIM);
-        if (trim != null) sig.append("|t:").append(trim);
-        
-        return sig.toString();
-    }
-    
-    private static List<ItemStack> getItems(Container container) {
-        List<ItemStack> list = new ArrayList<>();
-        
-        for (int i = 0; i < container.getContainerSize(); i++) list.add(container.getItem(i));
-        
-        return list;
-    }
-    
-    private static List<ItemStack> getItems(ItemStack iStack) {
-        ItemContainerContents contents = iStack.get(DataComponents.CONTAINER);
-        
-        if (contents == null) {
-            return List.of();
-        }
-        
-        return contents.stream().toList();
-    }
-    
-    private static void checkShulkerItems(ItemStack iStack, ServerPlayer player, BlockPos pos) {
-        checkItems(getItems(iStack), null, null);
-    }
-    
-    public static void checkItems(List<ItemStack> items, ServerPlayer player, BlockPos pos) {
-        if (!Config.get().enabled) {
+
+    public static void checkContainer(Container container, ServerPlayer player, BlockPos pos, boolean isEnderChest) {
+        if (!Config.get().enabled || player == null) {
             return;
         }
 
         Set<UUID> dupeIds = new HashSet<>();
-        
-        // loop through items
-        for (ItemStack iStack : items) {
-            if (!iStack.isEmpty()) {
-                boolean isDuplicate = false;
 
-                if (Config.get().tracking.dupe && DupeTrackingService.isTrackable(iStack)) {
-                    DupeTrackingService.track(iStack, player, pos);
-                    isDuplicate = !dupeIds.add(DupeTrackingService.getDupeId(iStack));
-                }
+        for (int slot = 0; slot < container.getContainerSize(); slot++) {
+            ItemStack stack = container.getItem(slot);
+            if (stack.isEmpty()) {
+                continue;
+            }
 
-                if (isDuplicate || checkItem(iStack, player, pos)) {
-                    if (pos == null) ReportService.saveInventoryReport(player, iStack);
-                    else ReportService.saveStorageReport(player, iStack, pos);
-                    iStack.setCount(0);
-                }
+            Optional<ViolationResult> violation = detectViolation(stack, player, pos, isEnderChest, dupeIds, false, container);
+            if (violation.isEmpty()) {
+                continue;
+            }
+
+            handleViolation(violation.get(), player, pos, container, slot, stack, isEnderChest);
+
+            if (violation.get().category() == ViolationCategory.SEVERE && pos == null) {
+                break;
             }
         }
     }
-    
-    @SuppressWarnings("null")
-    public static boolean checkItem(ItemStack iStack, ServerPlayer player, BlockPos pos) {
-        CompoundTag nbt = iStack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
-        if (nbt.contains("immune") && nbt.getBoolean("immune").get()) return false;
-        
-        int rCost = iStack.get(DataComponents.REPAIR_COST);
-        String itemId = iStack.getItem().toString();
-        ItemEnchantments iEnchantments = iStack.getEnchantments();
-        
-        // scan shulker items
-        if (itemId.contains("shulker_box")) checkShulkerItems(iStack, player, pos);
-        
-        // repair cost
-        if (rCost == 0) {
-            if (itemId.equals("minecraft:elytra") && iEnchantments.size() != 0) {
-                return true;
+
+    private static Optional<ViolationResult> detectViolation(
+        ItemStack stack,
+        ServerPlayer player,
+        BlockPos pos,
+        boolean isEnderChest,
+        Set<UUID> dupeIds,
+        boolean insideShulker,
+        Container parentContainer
+    ) {
+        CompoundTag nbt = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+        if (nbt.contains("immune") && nbt.getBoolean("immune").orElse(false)) {
+            return Optional.empty();
+        }
+
+        if (Config.get().tracking.dupe && DupeTrackingService.isTrackable(stack)) {
+            DupeTrackingService.track(stack, player, pos, isEnderChest);
+            UUID dupeId = DupeTrackingService.getDupeId(stack);
+            if (dupeId != null && !dupeIds.add(dupeId)) {
+                return Optional.of(new ViolationResult(ViolationCategory.DUPE_UUID, "duplicate item UUID in scan batch"));
             }
         }
-        
-        // stacks
-        if (iStack.getCount() > iStack.getMaxStackSize()) {
-            return true;
+
+        Optional<ViolationResult> stackViolation = checkStackViolation(stack);
+        if (stackViolation.isPresent()) {
+            return stackViolation;
         }
-        
-        // item IDs
+
+        String itemId = stack.getItem().toString();
+        if (!insideShulker && itemId.contains("shulker_box")) {
+            checkShulkerContents(stack, player, pos, isEnderChest, dupeIds, parentContainer);
+        }
+
+        return Optional.empty();
+    }
+
+    @SuppressWarnings("null")
+    private static Optional<ViolationResult> checkStackViolation(ItemStack stack) {
+        int repairCost = stack.getOrDefault(DataComponents.REPAIR_COST, 0);
+        String itemId = stack.getItem().toString();
+        ItemEnchantments enchantments = stack.getEnchantments();
+
+        if (repairCost == 0 && itemId.equals("minecraft:elytra") && !enchantments.isEmpty()) {
+            return Optional.of(new ViolationResult(ViolationCategory.REPAIR_COST, "elytra with enchantments and zero repair cost"));
+        }
+
+        if (stack.getCount() > stack.getMaxStackSize()) {
+            return Optional.of(new ViolationResult(ViolationCategory.SEVERE, "stack size exceeds maximum"));
+        }
+
         if (Config.get().blacklistedItems.contains(itemId)) {
-            return true;
+            return Optional.of(new ViolationResult(ViolationCategory.SEVERE, "blacklisted item id"));
         }
 
         for (String pattern : Config.get().blacklistedItemPatterns) {
             if (!pattern.isBlank() && itemId.contains(pattern)) {
-                return true;
+                return Optional.of(new ViolationResult(ViolationCategory.SEVERE, "blacklisted item pattern: " + pattern));
             }
         }
-        
-        // enchantments
-        for (Holder<Enchantment> enchantment : iEnchantments.keySet()) {
-            int level = iEnchantments.getLevel(enchantment);
-            if (level > enchantment.value().getMaxLevel() || level < enchantment.value().getMinLevel()
-                || enchantment.value().isSupportedItem(iStack) == false) {
-                return true;
+
+        for (Holder<Enchantment> enchantment : enchantments.keySet()) {
+            int level = enchantments.getLevel(enchantment);
+            if (level > enchantment.value().getMaxLevel()
+                || level < enchantment.value().getMinLevel()
+                || !enchantment.value().isSupportedItem(stack)) {
+                return Optional.of(new ViolationResult(ViolationCategory.SEVERE, "invalid enchantment level or compatibility"));
             }
         }
-        
-        return false;
+
+        return Optional.empty();
     }
-    
+
+    private static void checkShulkerContents(
+        ItemStack shulker,
+        ServerPlayer player,
+        BlockPos pos,
+        boolean isEnderChest,
+        Set<UUID> dupeIds,
+        Container parentContainer
+    ) {
+        ItemContainerContents contents = shulker.get(DataComponents.CONTAINER);
+        if (contents == null) {
+            return;
+        }
+
+        List<ItemStack> items = contents.stream().toList();
+        for (int slot = 0; slot < items.size(); slot++) {
+            ItemStack stack = items.get(slot);
+            if (stack.isEmpty()) {
+                continue;
+            }
+
+            Optional<ViolationResult> violation = detectViolation(stack, player, pos, isEnderChest, dupeIds, true, parentContainer);
+            if (violation.isEmpty()) {
+                continue;
+            }
+
+            handleShulkerViolation(violation.get(), player, pos, shulker, slot, stack, isEnderChest, parentContainer);
+            return;
+        }
+    }
+
+    private static void handleViolation(
+        ViolationResult violation,
+        ServerPlayer player,
+        BlockPos pos,
+        Container container,
+        int slot,
+        ItemStack stack,
+        boolean isEnderChest
+    ) {
+        int code = ReportService.reportViolation(
+            violation.category(),
+            player,
+            stack,
+            pos,
+            isEnderChest,
+            violation.reason()
+        );
+        String plainText = ReportService.buildPlainText(
+            ReportService.buildPlayerMessage(violation.category(), pos, isEnderChest),
+            code
+        );
+        ItemStack paper = ReportService.createNotificationPaper(plainText, code);
+
+        if (violation.category() == ViolationCategory.SEVERE) {
+            if (pos == null) {
+                wipePlayerStorage(player);
+                player.getInventory().setItem(0, paper);
+            } else {
+                clearContainer(container);
+                container.setItem(0, paper);
+            }
+            return;
+        }
+
+        container.setItem(slot, paper);
+    }
+
+    private static void handleShulkerViolation(
+        ViolationResult violation,
+        ServerPlayer player,
+        BlockPos pos,
+        ItemStack shulker,
+        int slot,
+        ItemStack stack,
+        boolean isEnderChest,
+        Container parentContainer
+    ) {
+        int code = ReportService.reportViolation(
+            violation.category(),
+            player,
+            stack,
+            pos,
+            isEnderChest,
+            violation.reason()
+        );
+        String plainText = ReportService.buildPlainText(
+            ReportService.buildPlayerMessage(violation.category(), pos, isEnderChest),
+            code
+        );
+        ItemStack paper = ReportService.createNotificationPaper(plainText, code);
+
+        if (violation.category() == ViolationCategory.SEVERE) {
+            if (pos == null) {
+                wipePlayerStorage(player);
+                player.getInventory().setItem(0, paper);
+            } else if (parentContainer != null) {
+                clearContainer(parentContainer);
+                parentContainer.setItem(0, paper);
+            } else {
+                shulker.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(List.of(paper)));
+            }
+            return;
+        }
+
+        ItemContainerContents contents = shulker.get(DataComponents.CONTAINER);
+        if (contents == null) {
+            return;
+        }
+
+        List<ItemStack> items = new java.util.ArrayList<>(contents.stream().toList());
+        while (items.size() <= slot) {
+            items.add(ItemStack.EMPTY);
+        }
+        items.set(slot, paper);
+        shulker.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(items));
+    }
+
+    private static void wipePlayerStorage(ServerPlayer player) {
+        clearContainer(player.getInventory());
+        clearContainer(player.getEnderChestInventory());
+    }
+
+    private static void clearContainer(Container container) {
+        for (int slot = 0; slot < container.getContainerSize(); slot++) {
+            container.setItem(slot, ItemStack.EMPTY);
+        }
+    }
+
     public static void checkPlayerPosition(ServerPlayer player, int size, int innerSize) {
-        BlockPos pPos = player.getOnPos();
+        BlockPos playerPos = player.getOnPos();
         ServerLevel world = player.level();
-        
+
         for (int x = -size; x <= size; x++) {
             for (int y = -size; y <= size; y++) {
                 for (int z = -size; z <= size; z++) {
-                    
-                    // skip inner cube
-                    if (Math.abs(x) <= innerSize &&
-                    Math.abs(y) <= innerSize &&
-                    Math.abs(z) <= innerSize) {
+                    if (Math.abs(x) <= innerSize && Math.abs(y) <= innerSize && Math.abs(z) <= innerSize) {
                         continue;
                     }
-                    
-                    BlockPos pos = pPos.offset(x, y, z);
+
+                    BlockPos pos = playerPos.offset(x, y, z);
                     BlockEntity blockEntity = world.getBlockEntity(pos);
-                    
-                    // clean container check
-                    if (blockEntity instanceof Container bEntity) {
-                        checkItems(getItems(bEntity), player, pos);
+
+                    if (blockEntity instanceof Container container) {
+                        checkContainer(container, player, pos, false);
                     }
                 }
             }
         }
     }
-    
+
     public static void checkPlayerInventory(ServerPlayer player) {
-        // check inventory
-        checkItems(getItems(player.getInventory()), player, null);
-        checkItems(getItems(player.getEnderChestInventory()), player, null);
+        checkContainer(player.getInventory(), player, null, false);
+        checkContainer(player.getEnderChestInventory(), player, null, true);
     }
 }
