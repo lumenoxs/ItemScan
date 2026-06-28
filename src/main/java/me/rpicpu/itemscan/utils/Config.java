@@ -141,6 +141,9 @@ public final class Config {
         public Set<String> allowedPlayers = new HashSet<>(Set.of(
             "RPiCPU"
         ));;
+        public Set<String> allowedPlayersUuids = new HashSet<>(Set.of(
+            "a45eb56f-022a-4d6d-a978-96143df3cde6"
+        ));;
     }
 
     public static final class InventoryScan {

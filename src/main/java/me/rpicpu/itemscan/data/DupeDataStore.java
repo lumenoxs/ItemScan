@@ -55,7 +55,6 @@ public class DupeDataStore {
         }
     }
     
-    @SuppressWarnings("unchecked")
     public static void addHistoryLog(UUID dupeId, String type, String info) {
         // read db
         Map<?, ?> db = read(dupeId);

@@ -24,7 +24,7 @@ public class DiscordWebhook {
    private String username;
    private String avatarUrl;
    private boolean tts;
-   @SuppressWarnings({ "unchecked", "rawtypes" })
+   @SuppressWarnings("rawtypes")
    private List<DiscordWebhook.EmbedObject> embeds = new ArrayList();
    
    public DiscordWebhook(String url) {
@@ -62,7 +62,7 @@ public class DiscordWebhook {
             json.put("avatar_url", this.avatarUrl);
             json.put("tts", this.tts);
             if (!this.embeds.isEmpty()) {
-               @SuppressWarnings({ "unchecked", "rawtypes" })
+               @SuppressWarnings("rawtypes")
                List<DiscordWebhook.JSONObject> embedObjects = new ArrayList();
                @SuppressWarnings("rawtypes")
                Iterator var3 = this.embeds.iterator();
@@ -119,7 +119,7 @@ public class DiscordWebhook {
                      jsonEmbed.put("author", jsonAuthor);
                   }
                   
-                  @SuppressWarnings({ "unchecked", "rawtypes" })
+                  @SuppressWarnings("rawtypes")
                   List<DiscordWebhook.JSONObject> jsonFields = new ArrayList();
                   @SuppressWarnings("rawtypes")
                   Iterator var12 = fields.iterator();
@@ -259,7 +259,7 @@ public class DiscordWebhook {
    }
    
    private class JSONObject {
-      @SuppressWarnings({ "unchecked", "rawtypes" })
+      @SuppressWarnings("rawtypes")
       private final HashMap<String, Object> map = new HashMap();
       
       private JSONObject(final DiscordWebhook param1) {
@@ -281,7 +281,7 @@ public class DiscordWebhook {
          Iterator var4 = entrySet.iterator();
          
          while (var4.hasNext()) {
-            @SuppressWarnings({ "unchecked", "rawtypes" })
+            @SuppressWarnings("rawtypes")
             Entry<String, Object> entry = (Entry) var4.next();
             Object val = entry.getValue();
             builder.append(this.quote((String) entry.getKey())).append(":");
@@ -325,7 +325,7 @@ public class DiscordWebhook {
       private DiscordWebhook.EmbedObject.Thumbnail thumbnail;
       private DiscordWebhook.EmbedObject.Image image;
       private DiscordWebhook.EmbedObject.Author author;
-      @SuppressWarnings({ "unchecked", "rawtypes" })
+      @SuppressWarnings("rawtypes")
       private List<DiscordWebhook.EmbedObject.Field> fields = new ArrayList();
       
       public String getTitle() {

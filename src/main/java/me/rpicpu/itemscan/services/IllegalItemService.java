@@ -61,7 +61,6 @@ public class IllegalItemService {
         boolean insideShulker,
         Container parentContainer
     ) {
-        @SuppressWarnings("null")
         CompoundTag nbt = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
         if (nbt.contains("immune") && nbt.getBoolean("immune").orElse(false)) {
             return Optional.empty();

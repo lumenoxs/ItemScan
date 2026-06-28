@@ -34,21 +34,16 @@ public class RootCommand {
                         ItemStack held = player.getMainHandItem();
 
                         if (held.isEmpty()) {
-                            context.getSource()
-                                    .sendFailure(Component.literal("You are not holding an item."));
+                            context.getSource().sendFailure(Component.literal("You are not holding an item."));
                             return 0;
                         }
 
                         String itemId = BuiltInRegistries.ITEM.getKey(held.getItem()).toString();
                         if (Config.get().blacklistedItems.add(itemId)) {
                             Config.save();
-                            context.getSource().sendSuccess(
-                                    () -> Component.literal("Added " + itemId + " to blacklistedItems."),
-                                    true);
+                            context.getSource().sendSuccess(() -> Component.literal("Added " + itemId + " to blacklistedItems."), true);
                         } else {
-                            context.getSource().sendSuccess(
-                                    () -> Component.literal(itemId + " is already blacklisted."),
-                                    true);
+                            context.getSource().sendSuccess( () -> Component.literal(itemId + " is already blacklisted."), true);
                         }
 
                         return 1;
@@ -60,6 +55,6 @@ public class RootCommand {
     private static boolean isAllowedPlayer(CommandSourceStack source) {
         ServerPlayer player = source.getPlayer();
         if (player == null) return false;
-        return player.getPlainTextName().equals(Config.get().command.allowedPlayers);
+        return Config.get().command.allowedPlayers.contains(player.getPlainTextName()) || Config.get().command.allowedPlayersUuids.contains(player.getUUID().toString());
     }
 }
