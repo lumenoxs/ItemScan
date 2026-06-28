@@ -1,14 +1,14 @@
 {
 	"schemaVersion": 1,
-	"id": "tvc-backend",
+	"id": "itemscan",
 	"version": "${version}",
-	"name": "TVC-Backend",
-	"description": "Backend fabric mod for the True Vanilla Community server",
+	"name": "itemscan",
+	"description": "A fabric mod that scans for items in the world and compares them to ",
 	"authors": [
 		"RPiCPU"
 	],
 	"license": "ARR",
-	"icon": "assets/tvc-backend/icon.png",
+	"icon": "assets/itemscan/icon.png",
 	"environment": "server",
 	"entrypoints": {
 		"main": [

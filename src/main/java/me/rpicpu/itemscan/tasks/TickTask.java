@@ -1,12 +1,12 @@
-package net.tvc.backend.tasks;
+package me.rpicpu.itemscan.tasks;
 
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
 
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.MinecraftServer;
 
-import net.tvc.backend.services.IllegalItemService;
-import net.tvc.backend.utils.Config;
+import me.rpicpu.itemscan.services.IllegalItemService;
+import me.rpicpu.itemscan.utils.Config;
 
 public class TickTask {
     public static int ticks = 0;

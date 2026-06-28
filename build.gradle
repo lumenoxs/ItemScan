@@ -16,7 +16,7 @@ loom {
 	splitEnvironmentSourceSets()
 
 	mods {
-		"tvc-backend" {
+		"itemscan" {
 			sourceSet sourceSets.main
 		}
 	}
@@ -68,7 +68,7 @@ jar {
 task renameJar {
 	doLast {
 		def originalJar = file("build/libs/${project.archives_base_name}-${project.mod_version}.jar")
-		def newJar = file("build/libs/TVC-Backend-${project.mod_version}+${project.minecraft_version}.jar")
+		def newJar = file("build/libs/ItemScan-${project.mod_version}+${project.minecraft_version}.jar")
 		
 		if (originalJar.exists()) {
 			if (newJar.exists()) {
@@ -80,7 +80,7 @@ task renameJar {
 		}
 		
 		def originalSourcesJar = file("build/libs/${project.archives_base_name}-${project.mod_version}-sources.jar")
-		def newSourcesJar = file("build/libs/TVC-Backend-${project.mod_version}+${project.minecraft_version}-sources.jar")
+		def newSourcesJar = file("build/libs/ItemScan-${project.mod_version}+${project.minecraft_version}-sources.jar")
 		
 		if (originalSourcesJar.exists()) {
 			if (newSourcesJar.exists()) {

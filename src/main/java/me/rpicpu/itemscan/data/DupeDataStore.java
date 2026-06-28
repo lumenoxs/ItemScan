@@ -1,4 +1,4 @@
-package net.tvc.backend.data;
+package me.rpicpu.itemscan.data;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

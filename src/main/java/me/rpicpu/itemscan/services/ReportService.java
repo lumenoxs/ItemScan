@@ -1,9 +1,9 @@
-package net.tvc.backend.services;
+package me.rpicpu.itemscan.services;
 
-import net.tvc.backend.BackendInstance;
-import net.tvc.backend.data.ViolationCategory;
-import net.tvc.backend.utils.Config;
-import net.tvc.backend.utils.DiscordWebhook;
+import me.rpicpu.itemscan.ItemScan;
+import me.rpicpu.itemscan.data.ViolationCategory;
+import me.rpicpu.itemscan.utils.Config;
+import me.rpicpu.itemscan.utils.DiscordWebhook;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -17,7 +17,6 @@ import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.network.chat.TextColor;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -37,8 +36,7 @@ import java.util.List;
 
 public class ReportService {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final String WIKI_URL = "https://truevanilla.net/wiki/SCRAT/Inventory";
-
+    
     public static int reportViolation(
         ViolationCategory category,
         ServerPlayer player,
@@ -48,89 +46,56 @@ public class ReportService {
         String reason
     ) {
         player.setGameMode(GameType.SURVIVAL);
-
+        
         int code = (int) (Math.floor(Math.random() * 999999) + 100000);
-        String message = buildPlayerMessage(category, pos, isEnderChest);
-        String plainText = buildPlainText(message, code);
-
+        
         JsonObject report = buildReport(category, player, stack, code, pos, isEnderChest, reason);
         persistReport(category, report);
-
-        sendMessage(player, message, code);
-        BackendInstance.LOGGER.warn(
-            player.getPlainTextName() + " triggered " + category.name() + " violation (code " + code + ")"
-        );
-
+        
+        sendMessage(player, code);
+        ItemScan.LOGGER.warn(player.getPlainTextName() + " triggered " + category.name() + " violation (code " + code + ")");
+        
         return code;
     }
-
-    public static ItemStack createNotificationPaper(String plainText, int code) {
+    
+    @SuppressWarnings("null")
+    public static ItemStack createNotificationPaper(MutableComponent plainText) {
         ItemStack paper = new ItemStack(Items.PAPER);
-        paper.set(DataComponents.CUSTOM_NAME, Component.literal("SCRAT Violation Notice #" + code));
-
+        paper.set(DataComponents.CUSTOM_NAME, Component.literal("ItemScan Violation Notice"));
+        
         List<Component> lore = new ArrayList<>();
-        for (String line : plainText.split("\n")) {
-            lore.add(Component.literal(line));
-        }
+        for (String line : plainText.getString().split("\n")) lore.add(Component.literal(line));
         paper.set(DataComponents.LORE, new ItemLore(lore));
-
+        
         return paper;
     }
 
     @SuppressWarnings("null")
-    public static void sendMessage(ServerPlayer player, String cmessage, int code) {
-        TextColor darkRed = TextColor.fromRgb(0xAA0000);
-        TextColor red = TextColor.fromRgb(0xFF5555);
-        TextColor gold = TextColor.fromRgb(0xFFAA00);
-
-        MutableComponent line1 = Component.literal(cmessage);
-        MutableComponent line2 = Component.literal("\nFor more info, go here: ");
-        MutableComponent link = Component.literal(WIKI_URL);
-        MutableComponent line3 = Component.literal("\nCode: ");
-        MutableComponent codeText = Component.literal(Integer.toString(code));
-
-        line1.setStyle(line1.getStyle().withColor(darkRed));
-        line2.setStyle(line2.getStyle().withColor(red));
-        link.setStyle(link.getStyle().withColor(red).withUnderlined(true)
-            .withClickEvent(new ClickEvent.OpenUrl(URI.create(WIKI_URL))));
-        line3.setStyle(line3.getStyle().withColor(gold));
-        codeText.setStyle(codeText.getStyle().withColor(gold)
-            .withClickEvent(new ClickEvent.CopyToClipboard(Integer.toString(code)))
-            .withHoverEvent(new HoverEvent.ShowText(Component.literal("Click to copy!"))));
-
-        MutableComponent message = Component.literal("")
-            .append(line1)
-            .append(line2)
-            .append(link)
-            .append(line3)
-            .append(codeText);
-        player.sendSystemMessage(message);
+    public static MutableComponent buildMessage(int code, boolean styles) {
+        MutableComponent line1 = Component.literal("A scan found an non-vanilla item, and it has been removed.\nFor more info, go here: ");
+        MutableComponent link = Component.literal("https://www.truevanilla.net/wiki/ItemScan/Appeal");
+        MutableComponent line3 = Component.literal("\nCode: "+Integer.toString(code));
+        
+        if (styles) {
+            link.setStyle(link.getStyle()
+                .withUnderlined(true)
+                .withClickEvent(new ClickEvent.OpenUrl(URI.create("https://www.truevanilla.net/wiki/ItemScan/Appeal")))
+                .withHoverEvent(new HoverEvent.ShowText(Component.literal("Click to open the appeal page!")))
+            );
+            line3.setStyle(line3.getStyle()
+                .withClickEvent(new ClickEvent.CopyToClipboard(Integer.toString(code)))
+                .withHoverEvent(new HoverEvent.ShowText(Component.literal("Click to copy!")))
+            );
+        }
+        
+        return Component.literal("").append(line1).append(link).append(line3);
     }
-
-    public static String buildPlayerMessage(ViolationCategory category, BlockPos pos, boolean isEnderChest) {
-        return switch (category) {
-            case REPAIR_COST -> pos == null
-                ? "An automated scan found an item with an invalid repair cost in your inventory"
-                : "An automated scan found an item with an invalid repair cost in a storage block near you";
-            case DUPE_UUID -> pos == null
-                ? "An automated scan found a duplicated item UUID in your inventory"
-                : "An automated scan found a duplicated item UUID in a storage block near you";
-            case SEVERE -> {
-                if (pos != null) {
-                    yield "An automated scan found illegal item(s) in a storage block near you and wiped its contents";
-                }
-                if (isEnderChest) {
-                    yield "An automated scan found illegal item(s) in your ender chest and wiped your inventory and ender chest";
-                }
-                yield "An automated scan found illegal item(s) in your inventory and wiped your inventory and ender chest";
-            }
-        };
+    
+    @SuppressWarnings("null")
+    public static void sendMessage(ServerPlayer player, int code) {
+        player.sendSystemMessage(buildMessage(code, true));
     }
-
-    public static String buildPlainText(String message, int code) {
-        return message + "\nFor more info, go here: " + WIKI_URL + "\nCode: " + code;
-    }
-
+    
     private static JsonObject buildReport(
         ViolationCategory category,
         ServerPlayer player,
@@ -147,7 +112,7 @@ public class ReportService {
         json.addProperty("playerName", player.getName().getString());
         json.addProperty("playerUUID", player.getUUID().toString());
         json.addProperty("code", code);
-
+        
         if (pos == null) {
             json.addProperty("type", isEnderChest ? "ender_chest" : "inventory");
             JsonObject position = new JsonObject();
@@ -163,17 +128,17 @@ public class ReportService {
             position.addProperty("z", pos.getZ());
             json.add("storagePosition", position);
         }
-
+        
         JsonObject item = new JsonObject();
         item.addProperty("id", BuiltInRegistries.ITEM.getKey(stack.getItem()).toString());
         item.addProperty("count", stack.getCount());
         item.addProperty("displayName", stack.getHoverName().getString());
         item.add("enchantments", GSON.toJsonTree(stack.getEnchantments()));
         json.add("item", item);
-
+        
         return json;
     }
-
+    
     @SuppressWarnings("null")
     private static synchronized void persistReport(ViolationCategory category, JsonObject report) {
         try {
@@ -181,19 +146,20 @@ public class ReportService {
             if (fileReport.enabled) {
                 Path reportFile = Paths.get(fileReport.path);
                 JsonArray reports;
-
+                
                 if (Files.exists(reportFile)) {
                     String existing = Files.readString(reportFile);
-                    reports = GSON.fromJson(existing, JsonArray.class);
-                    if (reports == null) {
+                    if (existing == null || existing.isBlank()) {
                         reports = new JsonArray();
+                    } else {
+                        reports = GSON.fromJson(existing, JsonArray.class);
                     }
                 } else {
                     reports = new JsonArray();
                 }
-
+                
                 reports.add(report);
-
+                
                 Files.writeString(
                     reportFile,
                     GSON.toJson(reports),
@@ -201,22 +167,20 @@ public class ReportService {
                     StandardOpenOption.TRUNCATE_EXISTING
                 );
             }
-
+            
             var discordReport = getCategoryReport(category);
             if (discordReport.enabled) {
                 if (!discordReport.webhookUrl.isBlank()) {
                     sendDiscordWebhook(report, discordReport.webhookUrl, category);
                 } else {
-                    BackendInstance.LOGGER.warn(
-                        "Discord reporting is enabled for " + category.name() + " but webhookUrl is not configured."
-                    );
+                    ItemScan.LOGGER.warn("Discord reporting is enabled for " + category.name() + " but webhookUrl is not configured.");
                 }
             }
         } catch (IOException e) {
-            BackendInstance.LOGGER.error("[IllegalItemReport] Failed to save report", e);
+            ItemScan.LOGGER.error("Failed to save report", e);
         }
     }
-
+    
     private static Config.DiscordReport getCategoryReport(ViolationCategory category) {
         var categories = Config.get().reports.categories;
         return switch (category) {
@@ -225,29 +189,29 @@ public class ReportService {
             case SEVERE -> categories.severe;
         };
     }
-
+    
     private static void sendDiscordWebhook(JsonObject report, String webhookUrl, ViolationCategory category) {
         try {
             DiscordWebhook webhook = new DiscordWebhook(webhookUrl);
             webhook.setUsername("TVC Backend Reporter");
-
+            
             DiscordWebhook.EmbedObject embed = new DiscordWebhook.EmbedObject()
-                .setTitle(category.displayName() + " Report")
-                .setColor(Color.RED)
-                .setDescription("An item scan violation was detected.");
-
+            .setTitle(category.displayName() + " Report")
+            .setColor(Color.RED)
+            .setDescription("An item scan violation was detected.");
+            
             embed.addField("Category", category.displayName(), true);
             embed.addField("Player", report.get("playerName").getAsString(), true);
             embed.addField("UUID", report.get("playerUUID").getAsString(), true);
             embed.addField("Type", report.get("type").getAsString(), true);
             embed.addField("Reason", report.get("reason").getAsString(), false);
-
+            
             JsonObject item = report.getAsJsonObject("item");
             embed.addField("Item ID", item.get("id").getAsString(), false);
             embed.addField("Display Name", item.get("displayName").getAsString(), true);
             embed.addField("Count", String.valueOf(item.get("count").getAsInt()), true);
             embed.addField("Code", String.valueOf(report.get("code").getAsInt()), false);
-
+            
             if (report.has("playerPosition")) {
                 JsonObject pos = report.getAsJsonObject("playerPosition");
                 embed.addField(
@@ -263,13 +227,13 @@ public class ReportService {
                     false
                 );
             }
-
+            
             embed.addField("Timestamp", report.get("timestamp").getAsString(), false);
-
+            
             webhook.addEmbed(embed);
             webhook.execute();
         } catch (Exception e) {
-            BackendInstance.LOGGER.error("[IllegalItemReport] Failed to send Discord webhook", e);
+            ItemScan.LOGGER.error("Failed to send Discord webhook", e);
         }
     }
 }

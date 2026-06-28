@@ -1,6 +1,6 @@
-package net.tvc.backend.managers;
+package me.rpicpu.itemscan.managers;
 
-import net.tvc.backend.tasks.TickTask;
+import me.rpicpu.itemscan.tasks.TickTask;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 

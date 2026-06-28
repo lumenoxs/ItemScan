@@ -1,4 +1,4 @@
-package net.tvc.backend.data;
+package me.rpicpu.itemscan.data;
 
 public enum ViolationCategory {
     REPAIR_COST("repairCost", "Invalid Repair Cost"),

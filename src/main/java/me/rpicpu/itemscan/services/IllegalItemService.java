@@ -1,4 +1,4 @@
-package net.tvc.backend.services;
+package me.rpicpu.itemscan.services;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -13,9 +13,10 @@ import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.tvc.backend.data.ViolationCategory;
-import net.tvc.backend.data.ViolationResult;
-import net.tvc.backend.utils.Config;
+
+import me.rpicpu.itemscan.data.ViolationCategory;
+import me.rpicpu.itemscan.data.ViolationResult;
+import me.rpicpu.itemscan.utils.Config;
 
 import java.util.HashSet;
 import java.util.List;
@@ -24,7 +25,6 @@ import java.util.Set;
 import java.util.UUID;
 
 public class IllegalItemService {
-
     public static void checkContainer(Container container, ServerPlayer player, BlockPos pos, boolean isEnderChest) {
         if (!Config.get().enabled || player == null) {
             return;
@@ -51,6 +51,7 @@ public class IllegalItemService {
         }
     }
 
+    @SuppressWarnings("null")
     private static Optional<ViolationResult> detectViolation(
         ItemStack stack,
         ServerPlayer player,
@@ -60,6 +61,7 @@ public class IllegalItemService {
         boolean insideShulker,
         Container parentContainer
     ) {
+        @SuppressWarnings("null")
         CompoundTag nbt = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
         if (nbt.contains("immune") && nbt.getBoolean("immune").orElse(false)) {
             return Optional.empty();
@@ -152,6 +154,7 @@ public class IllegalItemService {
         }
     }
 
+    @SuppressWarnings("null")
     private static void handleViolation(
         ViolationResult violation,
         ServerPlayer player,
@@ -169,11 +172,7 @@ public class IllegalItemService {
             isEnderChest,
             violation.reason()
         );
-        String plainText = ReportService.buildPlainText(
-            ReportService.buildPlayerMessage(violation.category(), pos, isEnderChest),
-            code
-        );
-        ItemStack paper = ReportService.createNotificationPaper(plainText, code);
+        ItemStack paper = ReportService.createNotificationPaper(ReportService.buildMessage(code, false));
 
         if (violation.category() == ViolationCategory.SEVERE) {
             if (pos == null) {
@@ -189,6 +188,7 @@ public class IllegalItemService {
         container.setItem(slot, paper);
     }
 
+    @SuppressWarnings("null")
     private static void handleShulkerViolation(
         ViolationResult violation,
         ServerPlayer player,
@@ -207,11 +207,7 @@ public class IllegalItemService {
             isEnderChest,
             violation.reason()
         );
-        String plainText = ReportService.buildPlainText(
-            ReportService.buildPlayerMessage(violation.category(), pos, isEnderChest),
-            code
-        );
-        ItemStack paper = ReportService.createNotificationPaper(plainText, code);
+        ItemStack paper = ReportService.createNotificationPaper(ReportService.buildMessage(code, false));
 
         if (violation.category() == ViolationCategory.SEVERE) {
             if (pos == null) {

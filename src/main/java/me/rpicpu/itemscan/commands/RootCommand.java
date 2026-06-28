@@ -1,28 +1,26 @@
-package net.tvc.backend.commands;
+package me.rpicpu.itemscan.commands;
 
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
-import net.tvc.backend.utils.Config;
 
-public class SCRATRootCommand {
+import me.rpicpu.itemscan.utils.Config;
+
+public class RootCommand {
     public static void register() {
-        if (!Config.get().scratCommand.enabled) {
-            return;
-        }
+        if (!Config.get().command.enabled) return;
 
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
-            dispatcher.register(buildRoot())
-        );
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(buildRoot()));
     }
 
     private static com.mojang.brigadier.builder.LiteralArgumentBuilder<CommandSourceStack> buildRoot() {
         return Commands.literal("itemscan")
-            .requires(SCRATRootCommand::isAllowedPlayer)
+            .requires(RootCommand::isAllowedPlayer)
             .then(Commands.literal("reload")
                 .executes(context -> {
                     Config.reload();
@@ -36,7 +34,8 @@ public class SCRATRootCommand {
                         ItemStack held = player.getMainHandItem();
 
                         if (held.isEmpty()) {
-                            context.getSource().sendFailure(Component.literal("You are not holding an item."));
+                            context.getSource()
+                                    .sendFailure(Component.literal("You are not holding an item."));
                             return 0;
                         }
 
@@ -44,25 +43,23 @@ public class SCRATRootCommand {
                         if (Config.get().blacklistedItems.add(itemId)) {
                             Config.save();
                             context.getSource().sendSuccess(
-                                () -> Component.literal("Added " + itemId + " to blacklistedItems."),
-                                true
-                            );
+                                    () -> Component.literal("Added " + itemId + " to blacklistedItems."),
+                                    true);
                         } else {
                             context.getSource().sendSuccess(
-                                () -> Component.literal(itemId + " is already blacklisted."),
-                                true
-                            );
+                                    () -> Component.literal(itemId + " is already blacklisted."),
+                                    true);
                         }
 
                         return 1;
-                    })));
+                    })
+                )
+            );
     }
 
     private static boolean isAllowedPlayer(CommandSourceStack source) {
         ServerPlayer player = source.getPlayer();
-        if (player == null) {
-            return false;
-        }
-        return player.getPlainTextName().equals(Config.get().scratCommand.allowedPlayer);
+        if (player == null) return false;
+        return player.getPlainTextName().equals(Config.get().command.allowedPlayers);
     }
 }

@@ -1,4 +1,4 @@
-package net.tvc.backend.utils;
+package me.rpicpu.itemscan.utils;
 
 import java.awt.Color;
 import java.io.BufferedReader;
@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.Map.Entry;
 import javax.net.ssl.HttpsURLConnection;
-import net.tvc.backend.BackendInstance;
+import me.rpicpu.itemscan.ItemScan;
 
 public class DiscordWebhook {
    private final String url;
@@ -168,7 +168,7 @@ public class DiscordWebhook {
                   stream.close();
                }
             } catch (Exception var24) {
-               BackendInstance.LOGGER.error("Failed to write Discord webhook output stream", var24);
+               ItemScan.LOGGER.error("Failed to write Discord webhook output stream", var24);
             }
             
             int responseCode = connection.getResponseCode();
@@ -186,7 +186,7 @@ public class DiscordWebhook {
                         while (true) {
                            String line;
                            if ((line = reader.readLine()) == null) {
-                              BackendInstance.LOGGER.error("Discord webhook returned HTTP {}: {}", responseCode,
+                              ItemScan.LOGGER.error("Discord webhook returned HTTP {}: {}", responseCode,
                               sb.toString().trim());
                               break;
                            }
@@ -205,7 +205,7 @@ public class DiscordWebhook {
                      
                      reader.close();
                   } else {
-                     BackendInstance.LOGGER.error("Discord webhook returned HTTP {} with empty error stream",
+                     ItemScan.LOGGER.error("Discord webhook returned HTTP {} with empty error stream",
                      responseCode);
                   }
                } catch (Throwable var20) {
@@ -252,7 +252,7 @@ public class DiscordWebhook {
             
             connection.disconnect();
          } catch (Exception var25) {
-            BackendInstance.LOGGER.error("Failed to send Discord webhook", var25);
+            ItemScan.LOGGER.error("Failed to send Discord webhook", var25);
          }
          
       }

@@ -1,8 +1,9 @@
-package net.tvc.backend.utils;
+package me.rpicpu.itemscan.utils;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import net.fabricmc.loader.api.FabricLoader;
+import me.rpicpu.itemscan.ItemScan;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -13,20 +14,11 @@ import java.util.HashSet;
 import java.util.Set;
 
 public final class Config {
-
-    private static final Gson GSON = new GsonBuilder()
-        .setPrettyPrinting()
-        .create();
-
-    private static final Path CONFIG_FILE =
-        FabricLoader.getInstance()
-            .getConfigDir()
-            .resolve("itemscan.json");
-
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final Path CONFIG_FILE = FabricLoader.getInstance().getConfigDir().resolve("itemscan.json");
     private static Data data;
 
-    private Config() {
-    }
+    private Config() {}
 
     public static void load() {
         try {
@@ -45,8 +37,12 @@ public final class Config {
                 save();
             }
 
-            normalize(data);
+            if (data.configVersion < ItemScan.configVersion) {
+                data = new Data();
+                save();
+            }
 
+            normalize(data);
         } catch (Exception e) {
             data = new Data();
             normalize(data);
@@ -54,13 +50,11 @@ public final class Config {
         }
     }
 
-    public static void reload() {
-        load();
-    }
+    public static void reload() { load(); }
 
     private static void normalize(Data config) {
-        if (config.scratCommand == null) {
-            config.scratCommand = new ScratCommand();
+        if (config.command == null) {
+            config.command = new Command();
         }
         if (config.inventoryScan == null) {
             config.inventoryScan = new InventoryScan();
@@ -110,24 +104,15 @@ public final class Config {
         }
     }
 
-    public static Data get() {
-        return data;
-    }
+    public static Data get() { return data; }
 
     public static final class Data {
-
         public boolean enabled = true;
-
-        public ScratCommand scratCommand = new ScratCommand();
-
+        public Command command = new Command();
         public InventoryScan inventoryScan = new InventoryScan();
-
         public PositionScan positionScan = new PositionScan();
-
         public Tracking tracking = new Tracking();
-
         public Reports reports = new Reports();
-
         public Set<String> blacklistedItems = new HashSet<>(Set.of(
             "minecraft:command_block",
             "minecraft:chain_command_block",
@@ -144,17 +129,18 @@ public final class Config {
             "minecraft:end_portal_frame",
             "minecraft:bedrock"
         ));
-
         public Set<String> blacklistedItemPatterns = new HashSet<>(Set.of(
             "spawn_egg"
         ));
-
         public boolean debug = false;
+        public int configVersion = ItemScan.configVersion;
     }
 
-    public static final class ScratCommand {
+    public static final class Command {
         public boolean enabled = true;
-        public String allowedPlayer = "RPiCPU";
+        public Set<String> allowedPlayers = new HashSet<>(Set.of(
+            "RPiCPU"
+        ));;
     }
 
     public static final class InventoryScan {
@@ -163,28 +149,19 @@ public final class Config {
     }
 
     public static final class PositionScan {
-
         public boolean enabled = true;
-
         public ScanRange small = new ScanRange(20, 4, 0);
-
         public ScanRange medium = new ScanRange(40, 7, 4);
-
         public ScanRange large = new ScanRange(100, 8, 7);
     }
 
     public static final class ScanRange {
-
         public boolean enabled = true;
-
         public int interval;
-
         public int radius;
-
         public int innerRadius;
 
-        public ScanRange() {
-        }
+        public ScanRange() {}
 
         public ScanRange(int interval, int radius, int innerRadius) {
             this.interval = interval;

@@ -1,4 +1,4 @@
-package net.tvc.backend.services;
+package me.rpicpu.itemscan.services;
 
 import java.util.UUID;
 
@@ -15,7 +15,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 
-import net.tvc.backend.data.DupeDataStore;
+import me.rpicpu.itemscan.data.DupeDataStore;
 
 public class DupeTrackingService {
     @SuppressWarnings("null")
