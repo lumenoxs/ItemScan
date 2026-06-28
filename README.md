@@ -1,11 +1,18 @@
-# TVC-Backend
+# ItemScan
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Version](https://img.shields.io/badge/version-1.2.0-green.svg)
 
 ## Description
 
-This is a custom coded Minecraft fabric mod for my Minecraft server. It currently only has one feature, an item scanning systems, that wipes and alert players if they or if a chest near them had an illegal item(s). However, I will be adding many more features in the future.
+This is a Minecraft fabric mod, with the sole purpose to intending to remove illegal/non-vanilla items.
+
+WIP features:
+* Potions and their effects
+* More advanced XP repair costs with more items
+* A .yml config rather than a .json config
+
+Any help/pull requests for the above features would be greatly appreciated! :)
 
 ## Build
 
@@ -37,5 +44,5 @@ lumenoxs (also known as RPiCPU or Blue Lightning)
 
 Email: `rpicpu@outlook.com`
 
-Source code link (this GitHub repo): [https://github.com/lumenoxs/ItemScan](https://github.com/lumenoxs/ItemScan)
-Modrinth link:
+Source code link (this GitHub repo): https://github.com/lumenoxs/ItemScan<br/>
+Modrinth link: https://modrinth.com/project/item-scan
