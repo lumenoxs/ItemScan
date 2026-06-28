@@ -1,7 +1,7 @@
 # ItemScan
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Version](https://img.shields.io/badge/version-1.2.0-green.svg)
+![License](https://img.shields.io/badge/license-AGPL--3.0-blue)
+![Version](https://img.shields.io/badge/version-1.2.0-green)
 
 ## Description
 
